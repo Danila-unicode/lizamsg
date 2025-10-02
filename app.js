@@ -1783,30 +1783,39 @@
         
         // Удалить сообщения только у отправителя
         async function deleteMessagesLocally() {
-            console.log(`🗑️ Локальное удаление ${selectedMessages.size} сообщений`);
+            console.log(`🗑️ deleteMessagesLocally вызвана для ${selectedMessages.size} сообщений`);
+            console.log(`🔍 Выделенные сообщения:`, Array.from(selectedMessages));
+            console.log(`🔍 Текущий чат: ${currentChatFriend}`);
             
             try {
                 const db = await initMessageDB();
                 const chatId = `chat_${currentUser.id}_${currentChatFriend}`;
                 const messages = await db.getRecentMessages(chatId, 1000);
                 
-                // Удаляем выделенные сообщения
-                const filteredMessages = messages.filter(msg => !selectedMessages.has(msg.timestamp.toString()));
+                console.log(`📚 Найдено ${messages.length} сообщений в IndexedDB`);
                 
-                // Сохраняем отфильтрованные сообщения
-                for (const message of filteredMessages) {
-                    await db.saveMessage(chatId, message);
+                // Находим сообщения для удаления
+                const messagesToDelete = [];
+                for (const message of messages) {
+                    const isSelected = selectedMessages.has(message.timestamp.toString());
+                    console.log(`🔍 Сообщение ${message.timestamp}: isSelected = ${isSelected}`);
+                    if (isSelected) {
+                        messagesToDelete.push(message);
+                    }
                 }
                 
-                // Скрываем сообщения в UI
-                selectedMessages.forEach(timestamp => {
-                    hideMessageInUI(timestamp);
-                });
+                console.log(`📊 Найдено ${messagesToDelete.length} сообщений для удаления:`, messagesToDelete);
+                
+                // Проверяем доступность функции из del.js
+                if (typeof window.deleteSystem.performLocalDeletion === 'function') {
+                    console.log(`✅ Функция performLocalDeletion доступна, вызываем...`);
+                    await window.deleteSystem.performLocalDeletion(messagesToDelete, currentChatFriend);
+                } else {
+                    console.log(`❌ Функция performLocalDeletion недоступна!`);
+                }
                 
                 // Очищаем выделение
                 clearSelection();
-                
-                console.log(`✅ ${selectedMessages.size} сообщений удалено локально`);
                 
             } catch (error) {
                 console.error('❌ Ошибка локального удаления:', error);
@@ -2975,32 +2984,41 @@
                 const messages = await db.getRecentMessages(chatId, 50);
                 console.log(`📚 Загружено ${messages.length} сообщений для ${chatId}`);
                 
-                // Применяем команды удаления из очереди
+                // Фильтруем сообщения: исключаем удаленные (статус "deleted")
+                const filteredMessages = messages.filter(message => {
+                    if (message.status === 'deleted') {
+                        console.log(`🗑️ Скрываем сообщение ${message.timestamp} со статусом "deleted"`);
+                        return false;
+                    }
+                    return true;
+                });
+                
+                console.log(`📚 После фильтрации удаленных сообщений: ${filteredMessages.length} из ${messages.length} сообщений`);
+                
+                // Применяем команды удаления из очереди (для глобального удаления)
                 console.log(`🔍 Применяем команды удаления для ${friendUsername}:`, {
-                    originalMessages: messages.length,
+                    originalMessages: filteredMessages.length,
                     messageQueues: messageQueues[friendUsername]?.length || 0,
                     localStorage: loadDeleteCommandsFromStorage(friendUsername).length
                 });
                 
-                const filteredMessages = applyDeleteCommandsFromQueue(friendUsername, messages);
-                console.log(`📚 После применения команд удаления: ${filteredMessages.length} сообщений`);
+                const finalFilteredMessages = applyDeleteCommandsFromQueue(friendUsername, filteredMessages);
+                console.log(`📚 После применения команд удаления: ${finalFilteredMessages.length} сообщений`);
                 
                 // Убираем индикатор загрузки
                 loadingDiv.remove();
                 
-                if (filteredMessages.length > 0) {
-                    // Отображаем сообщения (исключая удаленные)
-                    for (const message of filteredMessages) {
-                        if (message.status !== 'deleted') {
-                            addChatMessage(
-                                message.text,
-                                message.from,
-                                message.timestamp,
-                                message.type,
-                                true, // isFromHistory
-                                message.status // передаем статус из IndexedDB
-                            );
-                        }
+                if (finalFilteredMessages.length > 0) {
+                    // Отображаем сообщения
+                    for (const message of finalFilteredMessages) {
+                        addChatMessage(
+                            message.text,
+                            message.from,
+                            message.timestamp,
+                            message.type,
+                            true, // isFromHistory
+                            message.status // передаем статус из IndexedDB
+                        );
                     }
                     
                     // Прокручиваем к последним сообщениям после загрузки истории

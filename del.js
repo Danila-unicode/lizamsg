@@ -200,10 +200,10 @@ async function performGlobalDeletion(messagesToDelete, friendUsername) {
         }
         
         // 4. Обновляем историю через 5 секунд
-        setTimeout(() => {
-            console.log(`🔄 Обновляем историю чата через 5 секунд`);
-            loadChatHistory(friendUsername);
-        }, 5000);
+        // setTimeout(() => {
+        //     console.log(`🔄 Обновляем историю чата через 5 секунд`);
+        //     loadChatHistory(friendUsername);
+        // }, 5000);
         
         console.log(`✅ Глобальное удаление завершено`);
         
@@ -232,10 +232,10 @@ async function handleDeleteCommand(timestamp, fromUsername) {
             console.log(`✅ Сообщение ${timestamp} удалено по команде от ${fromUsername}`);
             
             // Обновляем историю через 5 секунд
-            setTimeout(() => {
-                console.log(`🔄 Обновляем историю чата через 5 секунд`);
-                loadChatHistory(fromUsername);
-            }, 5000);
+            // setTimeout(() => {
+            //     console.log(`🔄 Обновляем историю чата через 5 секунд`);
+            //     loadChatHistory(fromUsername);
+            // }, 5000);
         }
         
     } catch (error) {
@@ -287,11 +287,72 @@ function checkMessageAgeAndShowWarning(messages) {
     return true;
 }
 
+// Локальное удаление сообщений (только у отправителя)
+async function performLocalDeletion(messagesToDelete, friendUsername) {
+    console.log(`🗑️ performLocalDeletion вызвана для ${messagesToDelete.length} сообщений от ${friendUsername}`);
+    console.log(`🔍 Сообщения для удаления:`, messagesToDelete);
+    
+    try {
+        const db = await initMessageDB();
+        const chatId = `chat_${currentUser.id}_${friendUsername}`;
+        const messages = await db.getRecentMessages(chatId, 1000);
+        
+        console.log(`📚 Найдено ${messages.length} сообщений в IndexedDB для локального удаления`);
+        console.log(`🔍 Все сообщения в IndexedDB:`, messages);
+        
+        // Находим сообщения для удаления и меняем их статус на "deleted"
+        const messagesToDeleteLocal = [];
+        const messagesToKeep = [];
+        
+        for (const message of messages) {
+            const shouldDelete = messagesToDelete.some(toDelete => toDelete.timestamp === message.timestamp);
+            console.log(`🔍 Проверяем сообщение ${message.timestamp}: shouldDelete = ${shouldDelete}`);
+            
+            if (shouldDelete) {
+                // Меняем статус на "deleted" вместо физического удаления
+                console.log(`🗑️ Меняем статус сообщения ${message.timestamp} с "${message.status}" на "deleted"`);
+                message.status = 'deleted';
+                messagesToDeleteLocal.push(message);
+            } else {
+                messagesToKeep.push(message);
+            }
+        }
+        
+        console.log(`📊 Результат фильтрации: ${messagesToDeleteLocal.length} для удаления, ${messagesToKeep.length} для сохранения`);
+        
+        // Сохраняем все сообщения (включая с измененным статусом)
+        console.log(`💾 Сохраняем ${messagesToDeleteLocal.length + messagesToKeep.length} сообщений в IndexedDB`);
+        for (const message of [...messagesToDeleteLocal, ...messagesToKeep]) {
+            await db.saveMessage(chatId, message);
+            console.log(`💾 Сохранено сообщение ${message.timestamp} со статусом "${message.status}"`);
+        }
+        
+        // Скрываем сообщения в UI
+        console.log(`👁️ Скрываем ${messagesToDeleteLocal.length} сообщений в UI`);
+        messagesToDeleteLocal.forEach(message => {
+            console.log(`👁️ Скрываем сообщение ${message.timestamp} в UI`);
+            hideMessageInUI(message.timestamp);
+        });
+        
+        console.log(`✅ Локальное удаление завершено: ${messagesToDeleteLocal.length} сообщений помечено как удаленные`);
+        
+        // Обновляем историю через 5 секунд
+        // setTimeout(() => {
+        //     console.log(`🔄 Обновляем историю чата через 5 секунд после локального удаления`);
+        //     loadChatHistory(friendUsername);
+        // }, 5000);
+        
+    } catch (error) {
+        console.error('❌ Ошибка локального удаления:', error);
+    }
+}
+
 // Экспорт функций для использования в основном приложении
 window.deleteSystem = {
     canDeleteGlobally,
     isMessageTooOld,
     performGlobalDeletion,
+    performLocalDeletion,
     handleDeleteCommand,
     checkMessageAgeAndShowWarning,
     showDeleteWarning
