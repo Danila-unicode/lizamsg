@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Видеозвонки - LizaApp</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Шапка приложения -->
+    <div class="app-header">
+        <div class="logo">
+            📞 LizaApp
+        </div>
+        <div class="user-info" id="headerUserInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <span id="currentUserId"></span>
+            <button class="logout-btn" onclick="resetUser()">Выйти</button>
+        </div>
+    </div>
+
+    <div class="container main-container">
+        <!-- Левая панель -->
+        <div class="sidebar left-sidebar">
+            <div class="tabs navigation-tabs">
+                <div class="tab active" onclick="switchTab('friends')">Друзья</div>
+                <div class="tab" onclick="switchTab('requests')">Запросы</div>
+                <div class="tab" onclick="switchTab('invitations')">Приглашения</div>
+            </div>
+            <div class="tab-content sidebar-content">
+                <!-- Поиск пользователей -->
+                <div class="search-section user-search">
+                    <h3>🔍 Поиск пользователей</h3>
+                    <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
+                    <button onclick="searchUser()" class="btn-primary">🔍 Найти</button>
+                    <div id="searchResults"></div>
+                </div>
+                
+                <!-- Таб Друзья -->
+                <div id="friendsTab" class="tab-panel friends-panel">
+                    <h3>Мои друзья</h3>
+                    <div id="friendsList" class="friends-list"></div>
+                </div>
+                
+                <!-- Таб Запросы -->
+                <div id="requestsTab" class="tab-panel requests-panel" style="display: none;">
+                    <h3>Входящие запросы</h3>
+                    <div id="requestsList" class="requests-list"></div>
+                </div>
+                
+                <!-- Таб Приглашения -->
+                <div id="invitationsTab" class="tab-panel invitations-panel" style="display: none;">
+                    <h3>Исходящие запросы</h3>
+                    <div id="sentRequestsList" class="sent-requests-list"></div>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Основной контент -->
+        <div class="main-content right-content">
+            <h1>📞 Видеозвонки LizaApp</h1>
+            <p><strong>Инструкция:</strong> Войдите под своим логином и позвоните другому пользователю. Второй пользователь должен открыть эту же страницу на другом устройстве.</p>
+            <button onclick="window.open('https://lizaapp.wg01.ru/register.php', '_blank')" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 10px 0; border: none; border-radius: 5px; cursor: pointer;">Создать аккаунт</button>
+        
+        <div class="user-section profile-section user-profile">
+            <h2>👤 Ваш профиль</h2>
+            <div id="loginSection" class="login-form">
+                <input type="text" id="userId" value="" placeholder="Введите ваш логин">
+                <input type="password" id="userPassword" value="" placeholder="Введите пароль" style="display: none;">
+                <button onclick="showPasswordField(event)">Войти</button>
+                </div>
+            
+            <div id="userInfo" class="user-info-panel" style="display: none;">
+                <div id="userStatus" class="status disconnected">Отключен</div>
+                <p><strong>Логин:</strong> <span id="profileCurrentUserId"></span></p>
+                <input type="text" id="targetUserId" value="" placeholder="Введите логин собеседника" class="old-functionality">
+                <button onclick="startCall()" id="startCallBtn" disabled style="background: #4CAF50; color: white; display: none;" class="old-functionality">📞 Позвонить</button>
+                <button onclick="disconnectCall()" id="disconnectBtn" disabled style="background: #f44336; color: white; display: none;" class="old-functionality">🔌 Разорвать соединение</button>
+                <button onclick="resetUser()" style="background: #ff9800; color: white; display: none;">🔄 Выйти</button>
+                </div>
+        
+            <!-- Окно видеозвонка в правой части -->
+            <div id="videoCallContainer" class="video-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
+                <!-- Заголовок -->
+                <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0;">
+                    <h3 style="margin: 0; font-size: 24px; font-weight: 600;">📹 Видеозвонок</h3>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
+                </div>
+                
+                <!-- Область видео -->
+                <div style="flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 30px; justify-content: center; align-items: center; background: #f8f9fa; height: calc(100% - 140px);">
+                    <!-- Видео контейнер -->
+                    <div style="display: flex; gap: 30px; justify-content: center; align-items: center;">
+                        <!-- Локальное видео -->
+                        <div style="position: relative;">
+                            <video id="localVideo" autoplay muted style="width: 400px; height: 400px; background: #000; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></video>
+                            <div style="position: absolute; bottom: 15px; left: 15px; background: #2c3e50; color: white; padding: 8px 15px; border-radius: 4px; font-size: 14px; font-weight: 500;">Вы</div>
+                        </div>
+                        
+                        <!-- Удаленное видео -->
+                        <div style="position: relative;">
+                            <video id="remoteVideo" autoplay style="width: 400px; height: 400px; background: #000; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"></video>
+                            <div style="position: absolute; bottom: 15px; left: 15px; background: #2c3e50; color: white; padding: 8px 15px; border-radius: 4px; font-size: 14px; font-weight: 500;">Собеседник</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопка завершения звонка -->
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="endCall()" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.2s;">📞 Завершить звонок</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Окно аудиозвонка в правой части -->
+            <div id="audioCallContainer" class="audio-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
+                <!-- Заголовок -->
+                <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0;">
+                    <h3 style="margin: 0; font-size: 24px; font-weight: 600;">🎵 Аудиозвонок</h3>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
+                </div>
+                
+                <!-- Область аудио -->
+                <div style="flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 30px; justify-content: center; align-items: center; background: #f8f9fa; height: calc(100% - 140px);">
+                    <!-- Аудио контейнер -->
+                    <div style="display: flex; gap: 30px; justify-content: center; align-items: center;">
+                        <!-- Локальное аудио -->
+                        <div style="position: relative; width: 200px; height: 200px; background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                            <div style="color: white; font-size: 48px;">🎤</div>
+                            <div style="position: absolute; bottom: 15px; left: 15px; background: #2c3e50; color: white; padding: 8px 15px; border-radius: 4px; font-size: 14px; font-weight: 500;">Вы</div>
+                        </div>
+                        
+                        <!-- Удаленное аудио -->
+                        <div style="position: relative; width: 200px; height: 200px; background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                            <div style="color: white; font-size: 48px;">🔊</div>
+                            <div style="position: absolute; bottom: 15px; left: 15px; background: #2c3e50; color: white; padding: 8px 15px; border-radius: 4px; font-size: 14px; font-weight: 500;">Собеседник</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопка завершения звонка -->
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="endCall()" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.2s;">🎵 Завершить звонок</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Окно чата в правой части -->
+            <div id="chatContainer" class="chat-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
+                <!-- Заголовок чата -->
+                <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 24px; font-weight: 600;">💬 Чат с <span id="chatFriendName">Другом</span></h3>
+                        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;">📞 Видеозвонок</button>
+                        <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;">🎵 Аудиозвонок</button>
+                        <button onclick="closeChat()" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">✕</button>
+                    </div>
+                </div>
+                
+                <!-- Область сообщений -->
+                <div style="flex: 1; padding: 20px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
+                    <!-- Статус подключения -->
+                    <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
+                        Подключение к чат-серверу...
+                    </div>
+                    
+                    <!-- Сообщения чата -->
+                    <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; margin: 10px 0;">
+                        <!-- Сообщения будут добавляться здесь -->
+                    </div>
+                    
+                    <!-- Кнопка удаления выделенных сообщений -->
+                    <button id="deleteSelectedMessages" class="delete-button" onclick="deleteSelectedMessages()" title="Удалить выделенные сообщения">
+                        🗑️
+                    </button>
+                    
+                    <!-- Панель эмодзи -->
+                    <div id="chatEmojiPanel" style="display: none; padding: 10px; background: #e3f2fd; border-top: 1px solid #ddd; border-radius: 8px 8px 0 0;">
+                        <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; max-height: 200px; overflow-y: auto;">
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😀')">😀</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😂')">😂</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😍')">😍</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤔')">🤔</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👍')">👍</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👎')">👎</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('❤️')">❤️</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎉')">🎉</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🔥')">🔥</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💯')">💯</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🚀')">🚀</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('⭐')">⭐</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😎')">😎</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤗')">🤗</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😢')">😢</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😡')">😡</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😴')">😴</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤯')">🤯</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👏')">👏</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🙌')">🙌</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤝')">🤝</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('✌️')">✌️</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤞')">🤞</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤘')">🤘</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👌')">👌</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤏')">🤏</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💕')">💕</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💖')">💖</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💗')">💗</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💘')">💘</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💝')">💝</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💞')">💞</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💟')">💟</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💋')">💋</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💌')">💌</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎊')">🎊</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎈')">🎈</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎁')">🎁</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎂')">🎂</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🍰')">🍰</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🥳')">🥳</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎆')">🎆</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎇')">🎇</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('✨')">✨</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🌟')">🌟</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💫')">💫</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('⚡')">⚡</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💎')">💎</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎯')">🎯</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🏆')">🏆</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Поле ввода сообщения -->
+                    <div style="display: flex; padding: 15px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
+                        <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)">
+                        <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;">📤 Отправить</button>
+                        <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;">😀 Эмодзи</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="log" class="log"></div>
+        </div>
+        
+        <!-- Окно входящего звонка -->
+        <div id="incomingCallModal" class="incoming-call-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9998; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                <h2 style="color: #333; margin-bottom: 20px;">📞 Входящий звонок</h2>
+                <p style="font-size: 18px; margin-bottom: 30px;">Вам звонит: <strong id="callerName"></strong></p>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <button onclick="acceptIncomingCall()" style="background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">✅ Принять</button>
+                    <button onclick="rejectIncomingCall()" style="background: #f44336; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">❌ Отклонить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Окно чата -->
+        <div id="chatModal" class="chat-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1001; justify-content: center; align-items: center;">
+            <div style="background: white; width: 400px; height: 500px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+                <!-- Заголовок чата -->
+                <div style="background: #2196F3; color: white; padding: 15px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">💬 Чат с <span id="chatFriendName"></span></h3>
+                    <button onclick="closeChat()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
+            </div>
+            
+                <!-- Область сообщений -->
+                <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9;">
+                    <!-- Сообщения будут добавляться здесь -->
+        </div>
+        
+                <!-- Панель эмодзи -->
+                <div id="emojiPanel" style="display: none; padding: 10px; background: #e3f2fd; border-top: 1px solid #ddd;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <span onclick="sendChatEmoji('😀')" style="cursor: pointer; font-size: 20px;">😀</span>
+                        <span onclick="sendChatEmoji('😂')" style="cursor: pointer; font-size: 20px;">😂</span>
+                        <span onclick="sendChatEmoji('😍')" style="cursor: pointer; font-size: 20px;">😍</span>
+                        <span onclick="sendChatEmoji('🤔')" style="cursor: pointer; font-size: 20px;">🤔</span>
+                        <span onclick="sendChatEmoji('👍')" style="cursor: pointer; font-size: 20px;">👍</span>
+                        <span onclick="sendChatEmoji('👎')" style="cursor: pointer; font-size: 20px;">👎</span>
+                        <span onclick="sendChatEmoji('❤️')" style="cursor: pointer; font-size: 20px;">❤️</span>
+                        <span onclick="sendChatEmoji('🎉')" style="cursor: pointer; font-size: 20px;">🎉</span>
+                    </div>
+                </div>
+                
+                <!-- Панель ввода -->
+                <div style="padding: 15px; border-top: 1px solid #ddd; background: white; border-radius: 0 0 15px 15px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="toggleEmojiPanel()" style="background: #ff9800; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">😀</button>
+                        <input type="text" id="messageInput" placeholder="Введите сообщение..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" onkeypress="handleMessageKeyPress(event)">
+                        <button onclick="sendMessage()" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Система друзей -->
+        <div class="user-section friends-section friends-management" id="friendsSection">
+            <h2>👥 Система друзей</h2>
+            
+            <!-- Поиск пользователей -->
+            <div class="search-section">
+                <h3>🔍 Поиск пользователей</h3>
+                <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
+                <button onclick="searchUser()" class="btn-primary">🔍 Найти</button>
+                <div id="searchResults" class="search-results"></div>
+        </div>
+            
+            <!-- Списки -->
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <!-- Друзья -->
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>👥 Друзья</h3>
+                    <div id="friendsList" class="friends-list">
+                        <p style="color: #666; text-align: center; margin: 20px 0;">Нет друзей</p>
+                </div>
+        </div>
+            
+                <!-- Запросы в друзья -->
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>📨 Запросы в друзья</h3>
+                    <div id="requestsList" class="requests-list">
+                        <p style="color: #666; text-align: center; margin: 20px 0;">Нет запросов</p>
+                </div>
+            </div>
+            
+                <!-- Отправленные приглашения -->
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>📤 Отправленные приглашения</h3>
+                    <div id="sentRequestsList" class="sent-requests-list">
+                        <p style="color: #666; text-align: center; margin: 20px 0;">Нет отправленных приглашений</p>
+                </div>
+        </div>
+        </div>
+        
+        <div class="user-section logs-section system-logs">
+            <h2>📋 Логи</h2>
+            <button onclick="copyLogs()" style="background: #4CAF50; color: white; font-weight: bold;">📋 Копировать логи</button>
+            <p>Эта кнопка скопирует логи для отправки разработчику</p>
+        </div>
+    </div>
+
+    <!-- Подключение внешних JavaScript файлов -->
+    <script src="del.js?v=1"></script>
+    <script src="app.js?v=5"></script>
+</body>
+</html>
