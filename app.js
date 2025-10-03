@@ -4195,6 +4195,9 @@
             hideFriendsSection();
             
             updateUI();
+            
+            // Перенаправляем на страницу входа
+            window.location.href = 'login.php';
         }
         
         // Копирование логов
@@ -4293,16 +4296,16 @@
             if (isFriend) {
                 buttonHtml = '<span style="color: green;">✓ Уже в друзьях</span>';
             } else if (hasRequest) {
-                buttonHtml = '<span style="color: orange;">📨 Есть входящий запрос</span>';
+                buttonHtml = '<span style="color: orange;"><i class="fas fa-inbox"></i> Есть входящий запрос</span>';
             } else if (hasSentRequest) {
-                buttonHtml = '<span style="color: blue;">📤 Запрос отправлен</span>';
+                buttonHtml = '<span style="color: blue;"><i class="fas fa-paper-plane"></i> Запрос отправлен</span>';
                 } else {
-                buttonHtml = `<button onclick="sendFriendRequest('${user.username}')" class="btn-success btn-small">👥 Добавить в друзья</button>`;
+                buttonHtml = `<button onclick="sendFriendRequest('${user.username}')" class="btn-success btn-small"><i class="fas fa-user-plus"></i> Добавить в друзья</button>`;
             }
             
             searchResults.innerHTML = `
                 <div class="user-item">
-                    <div class="username">👤 ${user.username}</div>
+                    <div class="username"><i class="fas fa-user"></i> ${user.username}</div>
                     <div class="actions">${buttonHtml}</div>
                 </div>
             `;
@@ -4415,8 +4418,10 @@
                             <i class="fas fa-user"></i> ${friend.username}${unreadIndicator}
                         </div>
                         <div class="actions" onclick="event.stopPropagation()">
-                            <button onclick="callFriend('${friend.username}')" class="btn-primary btn-small" id="callBtn_${friend.username}"><i class="fas fa-video"></i> Видеозвонок</button>
-                            <button onclick="callFriendAudio('${friend.username}')" class="btn-secondary btn-small" id="audioCallBtn_${friend.username}"><i class="fas fa-microphone"></i> Аудиозвонок</button>
+                            <div class="call-buttons">
+                                <button onclick="callFriend('${friend.username}')" class="btn-primary btn-small" id="callBtn_${friend.username}"><i class="fas fa-video"></i> Видеозвонок</button>
+                                <button onclick="callFriendAudio('${friend.username}')" class="btn-secondary btn-small" id="audioCallBtn_${friend.username}"><i class="fas fa-microphone"></i> Аудиозвонок</button>
+                            </div>
                             <button onclick="endCall()" class="btn-danger btn-small" id="disconnectBtn_${friend.username}" style="display: none;"><i class="fas fa-phone-slash"></i> Завершить</button>
                         </div>
                     </div>

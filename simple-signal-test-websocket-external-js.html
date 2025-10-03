@@ -20,7 +20,7 @@
         <div class="user-info" id="headerUserInfo" style="display: none;">
             <div class="user-avatar" id="userAvatar">U</div>
             <span id="currentUserId"></span>
-            <button class="logout-btn" onclick="resetUser()">Выйти</button>
+            <button class="logout-btn" onclick="resetUser()" style="display: inline-block;">Выйти</button>
         </div>
     </div>
 
@@ -37,7 +37,7 @@
                 <div class="search-section user-search">
                     <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
                     <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
-                    <button onclick="searchUser()" class="btn-primary mobile-search-btn">🔍 Найти</button>
+                    <button onclick="searchUser()" class="btn-primary mobile-search-btn"><i class="fas fa-search"></i> Найти</button>
                     <div id="searchResults"></div>
                 </div>
                 
@@ -67,14 +67,169 @@
             <h1><i class="fas fa-phone"></i> Видеозвонки LizaApp</h1>
             <p><strong>Инструкция:</strong> Войдите под своим логином и позвоните другому пользователю. Второй пользователь должен открыть эту же страницу на другом устройстве.</p>
             <button onclick="window.open('https://lizaapp.wg01.ru/register.php', '_blank')" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 10px 0; border: none; border-radius: 5px; cursor: pointer;">Создать аккаунт</button>
+                </div>
+            
+        <!-- Инструкция по использованию -->
+        <div class="usage-instructions" id="usageInstructions">
+            
+            <div class="quick-start">
+                <h3><i class="fas fa-play-circle"></i> Быстрый старт</h3>
+                <div class="start-steps">
+                    <div class="start-step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">
+                            <h4>Найдите друзей</h4>
+                            <p>Поиск по номеру телефона</p>
+                        </div>
+                </div>
+                    <div class="start-step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">
+                            <h4>Отправьте запрос</h4>
+                            <p>Добавьте в друзья</p>
+                </div>
+                        </div>
+                    <div class="start-step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">
+                            <h4>Дождитесь подтверждения</h4>
+                            <p>Принятие приглашения</p>
+                        </div>
+                    </div>
+                    <div class="start-step">
+                        <div class="step-number">4</div>
+                        <div class="step-text">
+                            <h4>Начните общение</h4>
+                            <p>Сообщения и звонки</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="features-showcase">
+                <h3><i class="fas fa-star"></i> Возможности</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-comment-dots"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Сообщения</h4>
+                            <p>Быстрая переписка с друзьями</p>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Аудиозвонки</h4>
+                            <p>Голосовые звонки высокого качества</p>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Видеозвонки</h4>
+                            <p>Видео общение в HD качестве</p>
+                </div>
+                        </div>
+                        </div>
+                    </div>
+                    
+            <div class="security-info">
+                <div class="security-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="security-content">
+                    <h4>Безопасность</h4>
+                    <p>Все данные зашифрованы, приватность гарантирована</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Окно чата в правой части -->
+            <div id="chatContainer" class="chat-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
+                <!-- Заголовок чата -->
+                <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 24px; font-weight: 600;">💬 Чат с <span id="chatFriendName">Другом</span></h3>
+                        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-video"></i></button>
+                    <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-phone"></i></button>
+                        <button onclick="closeChat()" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">✕</button>
+                    </div>
+                </div>
+                
+                <!-- Область сообщений -->
+            <div style="flex: 1; padding: 5px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
+                    <!-- Статус подключения -->
+                    <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
+                        Подключение к чат-серверу...
+                    </div>
+                    
+                    <!-- Сообщения чата -->
+                    <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; margin: 10px 0;">
+                        <!-- Сообщения будут добавляться здесь -->
+                    </div>
+                    
+                    <!-- Кнопка удаления выделенных сообщений -->
+                    <button id="deleteSelectedMessages" class="delete-button" onclick="deleteSelectedMessages()" title="Удалить выделенные сообщения">
+                        🗑️
+                    </button>
+                    
+                    <!-- Панель эмодзи -->
+                    <div id="chatEmojiPanel" style="display: none; padding: 10px; background: #e3f2fd; border-top: 1px solid #ddd; border-radius: 8px 8px 0 0;">
+                        <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; max-height: 200px; overflow-y: auto;">
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😀')">😀</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😂')">😂</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😍')">😍</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤔')">🤔</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👍')">👍</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👎')">👎</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('❤️')">❤️</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎉')">🎉</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🔥')">🔥</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💯')">💯</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🚀')">🚀</span>
+                        <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💪')">💪</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎊')">🎊</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎈')">🎈</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎁')">🎁</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎂')">🎂</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🍰')">🍰</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🥳')">🥳</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎆')">🎆</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎇')">🎇</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('✨')">✨</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🌟')">🌟</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💫')">💫</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('⚡')">⚡</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💎')">💎</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎯')">🎯</span>
+                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🏆')">🏆</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Поле ввода сообщения -->
+                <div style="display: flex; padding: 5px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
+                        <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)">
+                    <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="fas fa-paper-plane"></i></button>
+                    <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="far fa-smile"></i></button>
+                </div>
+            </div>
         </div>
         <div class="user-section profile-section user-profile">
-            <h2>👤 Ваш профиль</h2>
-            <div id="loginSection" class="login-form">
+            <h2></h2>
+            <div id="loginSection" class="login-form" style="display: none;">
                 <input type="text" id="userId" value="" placeholder="Введите ваш логин">
                 <input type="password" id="userPassword" value="" placeholder="Введите пароль" style="display: none;">
                 <button onclick="showPasswordField(event)">Войти</button>
-                </div>
+            </div>
             
             <div id="userInfo" class="user-info-panel" style="display: none;">
                 <div id="userStatus" class="status disconnected">Отключен</div>
@@ -82,11 +237,11 @@
                 <input type="text" id="targetUserId" value="" placeholder="Введите логин собеседника" class="old-functionality">
                 <button onclick="startCall()" id="startCallBtn" disabled style="background: #4CAF50; color: white; display: none;" class="old-functionality"><i class="fas fa-phone"></i> Позвонить</button>
                 <button onclick="disconnectCall()" id="disconnectBtn" disabled style="background: #f44336; color: white; display: none;" class="old-functionality">🔌 Разорвать соединение</button>
-                <button onclick="resetUser()" style="background: #ff9800; color: white; display: none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
-                </div>
+                <button onclick="logout()" style="background: #ff9800; color: white;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
+            </div>
         
             <!-- Окно видеозвонка в правой части -->
-            <div id="videoCallContainer" class="video-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
+            <div id="videoCallContainer" class="video-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000;">
                 <!-- Заголовок -->
                 <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0;">
                     <h3 style="margin: 0; font-size: 24px; font-weight: 600;"><i class="fas fa-video"></i> Видеозвонок</h3>
@@ -119,7 +274,7 @@
             </div>
             
             <!-- Окно аудиозвонка в правой части -->
-            <div id="audioCallContainer" class="audio-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
+            <div id="audioCallContainer" class="audio-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000;">
                 <!-- Заголовок -->
                 <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0;">
                     <h3 style="margin: 0; font-size: 24px; font-weight: 600;"><i class="fas fa-microphone"></i> Аудиозвонок</h3>
@@ -150,108 +305,12 @@
                 </div>
             </div>
             
-            <!-- Окно чата в правой части -->
-            <div id="chatContainer" class="chat-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
-                <!-- Заголовок чата -->
-                <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 24px; font-weight: 600;">💬 Чат с <span id="chatFriendName">Другом</span></h3>
-                        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
-                    </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-video"></i></button>
-                        <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-phone"></i></button>
-                        <button onclick="closeChat()" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">✕</button>
-                    </div>
-                </div>
-                
-                <!-- Область сообщений -->
-                <div style="flex: 1; padding: 5px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
-                    <!-- Статус подключения -->
-                    <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
-                        Подключение к чат-серверу...
-                    </div>
-                    
-                    <!-- Сообщения чата -->
-                    <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; margin: 10px 0;">
-                        <!-- Сообщения будут добавляться здесь -->
-                    </div>
-                    
-                    <!-- Кнопка удаления выделенных сообщений -->
-                    <button id="deleteSelectedMessages" class="delete-button" onclick="deleteSelectedMessages()" title="Удалить выделенные сообщения">
-                        🗑️
-                    </button>
-                    
-                    <!-- Панель эмодзи -->
-                    <div id="chatEmojiPanel" style="display: none; padding: 10px; background: #e3f2fd; border-top: 1px solid #ddd; border-radius: 8px 8px 0 0;">
-                        <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; max-height: 200px; overflow-y: auto;">
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😀')">😀</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😂')">😂</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😍')">😍</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤔')">🤔</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👍')">👍</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👎')">👎</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('❤️')">❤️</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎉')">🎉</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🔥')">🔥</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💯')">💯</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🚀')">🚀</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('⭐')">⭐</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😎')">😎</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤗')">🤗</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😢')">😢</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😡')">😡</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('😴')">😴</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤯')">🤯</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👏')">👏</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🙌')">🙌</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤝')">🤝</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('✌️')">✌️</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤞')">🤞</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤘')">🤘</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('👌')">👌</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🤏')">🤏</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💕')">💕</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💖')">💖</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💗')">💗</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💘')">💘</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💝')">💝</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💞')">💞</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💟')">💟</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💋')">💋</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💌')">💌</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎊')">🎊</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎈')">🎈</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎁')">🎁</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎂')">🎂</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🍰')">🍰</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🥳')">🥳</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎆')">🎆</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎇')">🎇</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('✨')">✨</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🌟')">🌟</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💫')">💫</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('⚡')">⚡</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('💎')">💎</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🎯')">🎯</span>
-                            <span style="padding: 5px; cursor: pointer; border-radius: 5px; text-align: center; font-size: 18px;" onclick="sendChatEmoji('🏆')">🏆</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Поле ввода сообщения -->
-                    <div style="display: flex; padding: 5px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
-                        <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)">
-                        <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="fas fa-paper-plane"></i></button>
-                        <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="far fa-smile"></i></button>
-                    </div>
-                </div>
-            </div>
             
             <div id="log" class="log"></div>
         </div>
         
         <!-- Окно входящего звонка -->
-        <div id="incomingCallModal" class="incoming-call-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9998; justify-content: center; align-items: center;">
+        <div id="incomingCallModal" class="incoming-call-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
             <div style="background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
                 <h2 style="color: #333; margin-bottom: 20px;"><i class="fas fa-phone"></i> Входящий звонок</h2>
                 <p style="font-size: 18px; margin-bottom: 30px;">Вам звонит: <strong id="callerName"></strong></p>
@@ -309,7 +368,7 @@
             <div class="search-section">
                 <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
                 <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
-                <button onclick="searchUser()" class="btn-primary">🔍 Найти</button>
+                <button onclick="searchUser()" class="btn-primary"><i class="fas fa-search"></i> Найти</button>
                 <div id="searchResults" class="search-results"></div>
         </div>
             
@@ -349,6 +408,42 @@
 
     <!-- Подключение внешних JavaScript файлов -->
     <script src="del.js?v=1"></script>
+    <script>
+        // Проверка авторизации при загрузке страницы
+        window.addEventListener('load', function() {
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                // Пользователь не авторизован, перенаправляем на страницу входа
+                window.location.href = 'login.php';
+                return;
+            }
+            
+            try {
+                const user = JSON.parse(userData);
+                if (!user.username || !user.sessionToken) {
+                    // Данные пользователя неполные, перенаправляем на страницу входа
+                    localStorage.removeItem('userData');
+                    window.location.href = 'login.php';
+                    return;
+                }
+            } catch (error) {
+                // Ошибка парсинга данных пользователя, перенаправляем на страницу входа
+                console.error('Ошибка парсинга данных пользователя:', error);
+                localStorage.removeItem('userData');
+                window.location.href = 'login.php';
+                return;
+            }
+        });
+        
+        // Функция выхода - перенаправляет на страницу входа
+        function logout() {
+            // Очищаем данные пользователя
+            localStorage.removeItem('userData');
+            
+            // Перенаправляем на страницу входа
+            window.location.href = 'login.php';
+        }
+    </script>
     <script src="app.js?v=5"></script>
 </body>
 </html>
