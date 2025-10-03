@@ -30,6 +30,7 @@
             state: 'idle', // idle, connecting, connected, calling
             targetUser: null,
             peerConnection: null,
+            isFrontCamera: true, // true = фронтальная, false = основная
             localStream: null,
             sessionToken: null,
             isInitiator: false,
@@ -1786,6 +1787,8 @@
             console.log(`🗑️ deleteMessagesLocally вызвана для ${selectedMessages.size} сообщений`);
             console.log(`🔍 Выделенные сообщения:`, Array.from(selectedMessages));
             console.log(`🔍 Текущий чат: ${currentChatFriend}`);
+            console.log(`🔍 window.deleteSystem доступен:`, typeof window.deleteSystem);
+            console.log(`🔍 performLocalDeletion доступна:`, typeof window.deleteSystem?.performLocalDeletion);
             
             try {
                 const db = await initMessageDB();
@@ -2282,6 +2285,7 @@
                 delete pingIntervals[friendUsername];
             }
         }
+        
         
         // Пометка сообщений как неотправленные
         function markMessagesAsFailed(friendUsername) {
@@ -4408,12 +4412,12 @@
                 return `
                     <div class="friend-item" data-friend="${friend.username}" onclick="openChat('${friend.username}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='white'">
                         <div class="username" style="position: relative;">
-                            👤 ${friend.username}${unreadIndicator}
+                            <i class="fas fa-user"></i> ${friend.username}${unreadIndicator}
                         </div>
                         <div class="actions" onclick="event.stopPropagation()">
-                            <button onclick="callFriend('${friend.username}')" class="btn-primary btn-small" id="callBtn_${friend.username}">📞 Видеозвонок</button>
-                            <button onclick="callFriendAudio('${friend.username}')" class="btn-secondary btn-small" id="audioCallBtn_${friend.username}">🎵 Аудиозвонок</button>
-                            <button onclick="endCall()" class="btn-danger btn-small" id="disconnectBtn_${friend.username}" style="display: none;">🔌 Завершить</button>
+                            <button onclick="callFriend('${friend.username}')" class="btn-primary btn-small" id="callBtn_${friend.username}"><i class="fas fa-video"></i> Видеозвонок</button>
+                            <button onclick="callFriendAudio('${friend.username}')" class="btn-secondary btn-small" id="audioCallBtn_${friend.username}"><i class="fas fa-microphone"></i> Аудиозвонок</button>
+                            <button onclick="endCall()" class="btn-danger btn-small" id="disconnectBtn_${friend.username}" style="display: none;"><i class="fas fa-phone-slash"></i> Завершить</button>
                         </div>
                     </div>
                 `;
@@ -4908,5 +4912,48 @@
                     btn.style.background = '#2196F3';
                     btn.title = 'Нажмите для включения файлового хранения';
                 }
+            }
+        }
+        
+        // Смена камеры (фронтальная/основная)
+        async function switchCamera() {
+            if (!currentUser.peerConnection || !currentUser.localStream) {
+                currentUser.log('❌ Нет активного соединения для смены камеры', 'error');
+                return;
+            }
+            
+            try {
+                currentUser.log('🔄 Переключение камеры...', 'info');
+                
+                // Останавливаем текущий поток
+                currentUser.localStream.getTracks().forEach(track => track.stop());
+                
+                // Получаем новый поток с другой камеры
+                const newStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: currentUser.isFrontCamera ? 'environment' : 'user'
+                    },
+                    audio: true
+                });
+                
+                // Обновляем флаг камеры
+                currentUser.isFrontCamera = !currentUser.isFrontCamera;
+                
+                // Заменяем треки в существующем соединении
+                const videoTrack = newStream.getVideoTracks()[0];
+                const sender = currentUser.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                
+                if (sender) {
+                    await sender.replaceTrack(videoTrack);
+                }
+                
+                // Обновляем локальное видео
+                document.getElementById('localVideo').srcObject = newStream;
+                currentUser.localStream = newStream;
+                
+                currentUser.log(`📹 Камера переключена на ${currentUser.isFrontCamera ? 'фронтальную' : 'основную'}`, 'success');
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка переключения камеры: ${error.message}`, 'error');
             }
         }

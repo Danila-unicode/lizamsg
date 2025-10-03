@@ -2,15 +2,20 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Видеозвонки - LizaApp</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Шапка приложения -->
     <div class="app-header">
         <div class="logo">
-            📞 LizaApp
+            <i class="fas fa-phone"></i> LizaApp
         </div>
         <div class="user-info" id="headerUserInfo" style="display: none;">
             <div class="user-avatar" id="userAvatar">U</div>
@@ -23,16 +28,16 @@
         <!-- Левая панель -->
         <div class="sidebar left-sidebar">
             <div class="tabs navigation-tabs">
-                <div class="tab active" onclick="switchTab('friends')">Друзья</div>
-                <div class="tab" onclick="switchTab('requests')">Запросы</div>
-                <div class="tab" onclick="switchTab('invitations')">Приглашения</div>
+                <div class="tab active" onclick="switchTab('friends')"><i class="fas fa-users"></i> Друзья</div>
+                <div class="tab" onclick="switchTab('requests')"><i class="fas fa-inbox"></i> Запросы</div>
+                <div class="tab" onclick="switchTab('invitations')"><i class="fas fa-paper-plane"></i> Приглашения</div>
             </div>
             <div class="tab-content sidebar-content">
                 <!-- Поиск пользователей -->
                 <div class="search-section user-search">
-                    <h3>🔍 Поиск пользователей</h3>
+                    <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
                     <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
-                    <button onclick="searchUser()" class="btn-primary">🔍 Найти</button>
+                    <button onclick="searchUser()" class="btn-primary mobile-search-btn">🔍 Найти</button>
                     <div id="searchResults"></div>
                 </div>
                 
@@ -58,10 +63,11 @@
             
         <!-- Основной контент -->
         <div class="main-content right-content">
-            <h1>📞 Видеозвонки LizaApp</h1>
+            <div class="titlemain">
+            <h1><i class="fas fa-phone"></i> Видеозвонки LizaApp</h1>
             <p><strong>Инструкция:</strong> Войдите под своим логином и позвоните другому пользователю. Второй пользователь должен открыть эту же страницу на другом устройстве.</p>
             <button onclick="window.open('https://lizaapp.wg01.ru/register.php', '_blank')" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 10px 0; border: none; border-radius: 5px; cursor: pointer;">Создать аккаунт</button>
-        
+        </div>
         <div class="user-section profile-section user-profile">
             <h2>👤 Ваш профиль</h2>
             <div id="loginSection" class="login-form">
@@ -74,16 +80,16 @@
                 <div id="userStatus" class="status disconnected">Отключен</div>
                 <p><strong>Логин:</strong> <span id="profileCurrentUserId"></span></p>
                 <input type="text" id="targetUserId" value="" placeholder="Введите логин собеседника" class="old-functionality">
-                <button onclick="startCall()" id="startCallBtn" disabled style="background: #4CAF50; color: white; display: none;" class="old-functionality">📞 Позвонить</button>
+                <button onclick="startCall()" id="startCallBtn" disabled style="background: #4CAF50; color: white; display: none;" class="old-functionality"><i class="fas fa-phone"></i> Позвонить</button>
                 <button onclick="disconnectCall()" id="disconnectBtn" disabled style="background: #f44336; color: white; display: none;" class="old-functionality">🔌 Разорвать соединение</button>
-                <button onclick="resetUser()" style="background: #ff9800; color: white; display: none;">🔄 Выйти</button>
+                <button onclick="resetUser()" style="background: #ff9800; color: white; display: none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
                 </div>
         
             <!-- Окно видеозвонка в правой части -->
             <div id="videoCallContainer" class="video-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
                 <!-- Заголовок -->
                 <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0;">
-                    <h3 style="margin: 0; font-size: 24px; font-weight: 600;">📹 Видеозвонок</h3>
+                    <h3 style="margin: 0; font-size: 24px; font-weight: 600;"><i class="fas fa-video"></i> Видеозвонок</h3>
                     <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
                 </div>
                 
@@ -104,9 +110,10 @@
                         </div>
                     </div>
                     
-                    <!-- Кнопка завершения звонка -->
+                    <!-- Кнопки управления звонком -->
                     <div style="text-align: center; margin-top: 20px;">
-                        <button onclick="endCall()" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.2s;">📞 Завершить звонок</button>
+                        <button onclick="switchCamera()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; margin-right: 10px;"><i class="fas fa-sync-alt"></i></button>
+                        <button onclick="endCall()" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.2s;"><i class="fas fa-phone"></i></button>
                     </div>
                 </div>
             </div>
@@ -115,7 +122,7 @@
             <div id="audioCallContainer" class="audio-call-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
                 <!-- Заголовок -->
                 <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0;">
-                    <h3 style="margin: 0; font-size: 24px; font-weight: 600;">🎵 Аудиозвонок</h3>
+                    <h3 style="margin: 0; font-size: 24px; font-weight: 600;"><i class="fas fa-microphone"></i> Аудиозвонок</h3>
                     <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
                 </div>
                 
@@ -138,7 +145,7 @@
                     
                     <!-- Кнопка завершения звонка -->
                     <div style="text-align: center; margin-top: 20px;">
-                        <button onclick="endCall()" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.2s;">🎵 Завершить звонок</button>
+                        <button onclick="endCall()" style="background: #e74c3c; color: white; border: none; padding: 15px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.2s;"><i class="fas fa-phone"></i> Завершить звонок</button>
                     </div>
                 </div>
             </div>
@@ -152,14 +159,14 @@
                         <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;">📞 Видеозвонок</button>
-                        <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;">🎵 Аудиозвонок</button>
+                        <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-video"></i></button>
+                        <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-phone"></i></button>
                         <button onclick="closeChat()" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">✕</button>
                     </div>
                 </div>
                 
                 <!-- Область сообщений -->
-                <div style="flex: 1; padding: 20px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
+                <div style="flex: 1; padding: 5px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
                     <!-- Статус подключения -->
                     <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
                         Подключение к чат-серверу...
@@ -232,10 +239,10 @@
                     </div>
                     
                     <!-- Поле ввода сообщения -->
-                    <div style="display: flex; padding: 15px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
+                    <div style="display: flex; padding: 5px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
                         <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)">
-                        <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;">📤 Отправить</button>
-                        <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;">😀 Эмодзи</button>
+                        <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="fas fa-paper-plane"></i></button>
+                        <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="far fa-smile"></i></button>
                     </div>
                 </div>
             </div>
@@ -246,11 +253,11 @@
         <!-- Окно входящего звонка -->
         <div id="incomingCallModal" class="incoming-call-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9998; justify-content: center; align-items: center;">
             <div style="background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                <h2 style="color: #333; margin-bottom: 20px;">📞 Входящий звонок</h2>
+                <h2 style="color: #333; margin-bottom: 20px;"><i class="fas fa-phone"></i> Входящий звонок</h2>
                 <p style="font-size: 18px; margin-bottom: 30px;">Вам звонит: <strong id="callerName"></strong></p>
                 <div style="display: flex; gap: 20px; justify-content: center;">
-                    <button onclick="acceptIncomingCall()" style="background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">✅ Принять</button>
-                    <button onclick="rejectIncomingCall()" style="background: #f44336; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">❌ Отклонить</button>
+                    <button onclick="acceptIncomingCall()" style="background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;"><i class="fas fa-check"></i> Принять</button>
+                    <button onclick="rejectIncomingCall()" style="background: #f44336; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;"><i class="fas fa-times"></i> Отклонить</button>
                 </div>
             </div>
         </div>
@@ -296,11 +303,11 @@
             
         <!-- Система друзей -->
         <div class="user-section friends-section friends-management" id="friendsSection">
-            <h2>👥 Система друзей</h2>
+            <h2><i class="fas fa-users"></i> Система друзей</h2>
             
             <!-- Поиск пользователей -->
             <div class="search-section">
-                <h3>🔍 Поиск пользователей</h3>
+                <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
                 <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
                 <button onclick="searchUser()" class="btn-primary">🔍 Найти</button>
                 <div id="searchResults" class="search-results"></div>
@@ -310,7 +317,7 @@
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <!-- Друзья -->
                 <div style="flex: 1; min-width: 250px;">
-                    <h3>👥 Друзья</h3>
+                    <h3><i class="fas fa-users"></i> Друзья</h3>
                     <div id="friendsList" class="friends-list">
                         <p style="color: #666; text-align: center; margin: 20px 0;">Нет друзей</p>
                 </div>
@@ -326,7 +333,7 @@
             
                 <!-- Отправленные приглашения -->
                 <div style="flex: 1; min-width: 250px;">
-                    <h3>📤 Отправленные приглашения</h3>
+                    <h3><i class="fas fa-paper-plane"></i> Отправленные приглашения</h3>
                     <div id="sentRequestsList" class="sent-requests-list">
                         <p style="color: #666; text-align: center; margin: 20px 0;">Нет отправленных приглашений</p>
                 </div>

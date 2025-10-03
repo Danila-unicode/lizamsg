@@ -1,5 +1,7 @@
 // ===== СИСТЕМА УДАЛЕНИЯ СООБЩЕНИЙ =====
 
+console.log('📦 del.js загружен успешно');
+
 // Глобальные переменные для удаления
 let deleteTimeout = null;
 let deleteRetryCount = 0;
@@ -95,8 +97,7 @@ async function establishP2PForDeletion(friendUsername) {
         console.log(`📤 Ping отправлен к ${friendUsername}`);
     } else {
         console.log(`❌ Функция sendP2PSignal не найдена`);
-        reject(new Error('sendP2PSignal function not available'));
-        return;
+        return Promise.reject(new Error('sendP2PSignal function not available'));
     }
     
     // Ждем установления соединения
@@ -192,7 +193,6 @@ async function performGlobalDeletion(messagesToDelete, friendUsername) {
                         console.log(`❌ Не удалось отправить команду удаления для сообщения ${message.timestamp}`);
                     }
                 }
-                
             } catch (error) {
                 console.log(`❌ Не удалось установить P2P соединение для удаления: ${error.message}`);
                 showDeleteWarning('Получатель недоступен. Сообщения удалены только у вас.');
@@ -357,3 +357,5 @@ window.deleteSystem = {
     checkMessageAgeAndShowWarning,
     showDeleteWarning
 };
+
+console.log('✅ window.deleteSystem создан успешно:', Object.keys(window.deleteSystem));
