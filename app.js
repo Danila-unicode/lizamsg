@@ -2782,12 +2782,6 @@
                 return;
             }
             
-            // Проверяем, что получатель действительно в сети (есть активное P2P соединение)
-            if (!p2pConnections[senderUsername] || p2pConnections[senderUsername].status !== 'connected') {
-                console.log(`⚠️ ${senderUsername} не в сети, не показываем уведомление`);
-                return;
-            }
-            
             // Создаем уведомление
             const notification = document.createElement('div');
             notification.style.cssText = `
