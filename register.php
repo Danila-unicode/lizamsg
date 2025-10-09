@@ -1,3 +1,58 @@
+<?php
+// Обработка регистрации
+$error = '';
+$success = '';
+
+if ($_POST) {
+    $countryCode = $_POST['countryCode'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $password = $_POST['password'] ?? '';
+    
+    // Очищаем номер от всех символов кроме цифр
+    $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+    $fullPhoneNumber = $countryCode . $cleanPhone;
+    
+    if (empty($phone) || empty($password)) {
+        $error = 'Номер телефона и пароль обязательны';
+    } elseif (strlen($cleanPhone) !== 10) {
+        $error = 'Номер телефона должен содержать 10 цифр';
+    } elseif (strlen($password) < 5) {
+        $error = 'Пароль должен содержать минимум 5 символов';
+    } else {
+        // Подключение к базе данных
+        $host = 'localhost';
+        $dbname = 'lizaapp_dsfg12df1121q5sd2694';
+        $username_db = 'lizaapp_1w1d2sd3268';
+        $password_db = 'aM1oX3yE0j';
+        
+        try {
+            $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username_db, $password_db);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Проверяем, существует ли пользователь
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->execute([$fullPhoneNumber]);
+            
+            if ($stmt->fetch()) {
+                $error = 'Пользователь с таким номером уже существует';
+            } else {
+                // Хешируем пароль
+                $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+                
+                // Создаем пользователя
+                $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, phone_verified) VALUES (?, ?, 0)");
+                $stmt->execute([$fullPhoneNumber, $passwordHash]);
+                
+                // Перенаправляем на страницу подтверждения
+                header('Location: verify_phone.php?phone=' . urlencode($fullPhoneNumber));
+                exit;
+            }
+        } catch(PDOException $e) {
+            $error = 'Ошибка создания пользователя: ' . $e->getMessage();
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -9,41 +64,18 @@
     <link rel="stylesheet" href="styles.css">
     <script>
         // Маска для номера телефона
-        document.getElementById('phone').addEventListener('input', function(e) {
-            // Убираем все кроме цифр
-            let value = e.target.value.replace(/[^0-9]/g, '');
-            
-            // Ограничиваем до 10 цифр
-            if (value.length > 10) {
-                value = value.substring(0, 10);
-            }
-            
-            e.target.value = value;
-        });
-        
-        // Валидация при отправке
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const phone = document.getElementById('phone').value;
-            const countryCode = document.getElementById('countryCode').value;
-            
-            if (phone.length !== 10) {
-                e.preventDefault();
-                alert('Номер телефона должен содержать 10 цифр');
-                return false;
-            }
-            
-            if (!/^[0-9]{10}$/.test(phone)) {
-                e.preventDefault();
-                alert('Номер телефона должен содержать только цифры');
-                return false;
-            }
-            
-            // Показываем полный номер для подтверждения
-            const fullNumber = countryCode + phone;
-            if (!confirm(`Подтвердите номер телефона: ${fullNumber}`)) {
-                e.preventDefault();
-                return false;
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('phone').addEventListener('input', function(e) {
+                // Убираем все кроме цифр
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                
+                // Ограничиваем до 10 цифр
+                if (value.length > 10) {
+                    value = value.substring(0, 10);
+                }
+                
+                e.target.value = value;
+            });
         });
         
         // Обработка кнопки подтверждения через Telegram
@@ -136,7 +168,13 @@
     <div class="register-container">
         <h1 class="register-title">Создать аккаунт</h1>
         
-                
+        <?php if ($error): ?>
+        <div class="register-error"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+        
+        <?php if ($success): ?>
+        <div class="register-success"><?php echo htmlspecialchars($success); ?></div>
+        <?php endif; ?>
         
         <form method="POST">
             <div class="register-form-group">
@@ -241,14 +279,14 @@
                 <label for="phone" class="register-form-label">Номер телефона</label>
                 <input type="tel" id="phone" name="phone" class="register-form-input" required 
                        placeholder="9991234567" maxlength="10"
-                       value=""
+                       value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>"
                        pattern="[0-9]{10}">
             </div>
             
             <div class="register-form-group">
                 <label for="password" class="register-form-label">Пароль</label>
                 <input type="password" id="password" name="password" class="register-form-input" required 
-                       placeholder="Придумайте пароль" minlength="6">
+                       placeholder="Придумайте пароль" minlength="5">
                 <div class="register-password-hint">Не используйте простые пароли</div>
             </div>
             

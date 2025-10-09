@@ -43,7 +43,7 @@ if (empty($username) || empty($password)) {
 
 try {
     // Ищем пользователя
-    $stmt = $pdo->prepare("SELECT id, username, password_hash FROM users WHERE username = ? AND is_active = 1");
+    $stmt = $pdo->prepare("SELECT id, username, password_hash, phone_verified FROM users WHERE username = ? AND is_active = 1");
     $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -71,12 +71,16 @@ try {
     $stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
     $stmt->execute([$user['id']]);
     
+    // Логируем для отладки
+    error_log("Login API - User: " . $user['username'] . ", phone_verified: " . $user['phone_verified'] . " (type: " . gettype($user['phone_verified']) . ")");
+    
     echo json_encode([
         'success' => true,
         'message' => 'Авторизация успешна',
         'userId' => $user['id'],
         'username' => $user['username'],
-        'sessionToken' => $sessionToken
+        'sessionToken' => $sessionToken,
+        'phone_verified' => (int)$user['phone_verified']
     ]);
     
 } catch(PDOException $e) {

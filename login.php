@@ -188,15 +188,22 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Сохраняем данные пользователя как в app.js
-                    localStorage.setItem('userData', JSON.stringify({
-                        username: fullPhoneNumber,
-                        userId: data.userId,
-                        sessionToken: data.sessionToken
-                    }));
-                    
-                    // Перенаправляем на главную страницу
-                    window.location.href = 'simple-signal-test-websocket-external-js.html';
+                    // Проверяем, подтвержден ли номер телефона
+                    console.log('Phone verified status:', data.phone_verified, 'Type:', typeof data.phone_verified);
+                    if (data.phone_verified == 1 || data.phone_verified === 1 || data.phone_verified === '1' || data.phone_verified === true) {
+                        // Номер подтвержден - сохраняем данные пользователя
+                        localStorage.setItem('userData', JSON.stringify({
+                            username: fullPhoneNumber,
+                            userId: data.userId,
+                            sessionToken: data.sessionToken
+                        }));
+                        
+                        // Перенаправляем на главную страницу
+                        window.location.href = 'simple-signal-test-websocket-external-js.html';
+                    } else {
+                        // Номер не подтвержден - перенаправляем на страницу подтверждения
+                        window.location.href = 'verify_phone.php?phone=' + encodeURIComponent(fullPhoneNumber);
+                    }
                 } else {
                     showError(data.message || 'Ошибка авторизации');
                 }

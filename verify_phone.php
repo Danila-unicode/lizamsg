@@ -105,6 +105,23 @@
         .back-link a:hover {
             color: #333;
         }
+        
+        .alternative-verification {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .call-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .call-link:hover {
+            color: #333;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -118,6 +135,12 @@
         <button class="telegram-btn" onclick="confirmViaTelegram()">
             <i class="fab fa-telegram"></i> Подтвердить номер через Telegram
         </button>
+        
+        <div class="alternative-verification">
+            <a href="verify_phone_call.php?phone=<?php echo urlencode($_GET['phone'] ?? ''); ?>" class="call-link">
+                У меня нет Telegram
+            </a>
+        </div>
         
         <div id="status" class="status" style="display: none;"></div>
         
