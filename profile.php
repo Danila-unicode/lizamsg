@@ -6,6 +6,7 @@
     <title>Личный кабинет - LizaApp</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="avtr/css/avatar-styles.css">
+    <link rel="stylesheet" href="avtr/css/password-styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* Стили для редактирования статуса */
@@ -73,6 +74,7 @@
             border: 1px solid #e9ecef;
             min-height: 20px;
         }
+        
     </style>
     <script>
         // Переменные для аватара
@@ -399,7 +401,7 @@
             const newStatus = statusInput.value.trim();
             
             if (!newStatus) {
-                alert('Статус не может быть пустым');
+                showNotification('Статус не может быть пустым', 'error');
                 return;
             }
             
@@ -412,7 +414,7 @@
             }
             
             if (!userId) {
-                alert('Ошибка: ID пользователя не найден');
+                showNotification('Ошибка: ID пользователя не найден', 'error');
                 return;
             }
             
@@ -431,15 +433,144 @@
                     document.getElementById('userStatus').textContent = newStatus;
                     cancelStatusEdit();
                 } else {
-                    alert('Ошибка обновления статуса: ' + data.message);
+                    showNotification('Ошибка обновления статуса: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Ошибка сети:', error);
-                alert('Ошибка сети при обновлении статуса');
+                showNotification('Ошибка сети при обновлении статуса', 'error');
             });
         }
+
+        // Функция для показа уведомлений
+        function showNotification(message, type = 'info') {
+            // Удаляем существующие уведомления
+            const existingNotifications = document.querySelectorAll('.custom-notification');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            // Создаем уведомление
+            const notification = document.createElement('div');
+            notification.className = 'custom-notification';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-icon">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    </div>
+                    <div class="notification-message">${message}</div>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Добавляем стили для уведомления
+            if (!document.getElementById('notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'notification-styles';
+                style.textContent = `
+                    .custom-notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 10000;
+                        max-width: 400px;
+                        min-width: 300px;
+                        background: #2c3e50;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                        animation: slideInRight 0.3s ease-out;
+                    }
+                    
+                    .notification-content {
+                        display: flex;
+                        align-items: center;
+                        padding: 16px;
+                        gap: 12px;
+                    }
+                    
+                    .notification-icon {
+                        font-size: 20px;
+                        flex-shrink: 0;
+                    }
+                    
+                    .notification-icon i.fa-check-circle {
+                        color: #27ae60;
+                    }
+                    
+                    .notification-icon i.fa-exclamation-circle {
+                        color: #e74c3c;
+                    }
+                    
+                    .notification-icon i.fa-info-circle {
+                        color: #3498db;
+                    }
+                    
+                    .notification-message {
+                        flex: 1;
+                        color: white;
+                        font-size: 14px;
+                        line-height: 1.4;
+                    }
+                    
+                    .notification-close {
+                        background: none;
+                        border: none;
+                        color: #bdc3c7;
+                        cursor: pointer;
+                        padding: 4px;
+                        border-radius: 4px;
+                        transition: all 0.2s ease;
+                        flex-shrink: 0;
+                    }
+                    
+                    .notification-close:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                        color: white;
+                    }
+                    
+                    @keyframes slideInRight {
+                        from {
+                            transform: translateX(100%);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                    }
+                    
+                    @keyframes slideOutRight {
+                        from {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                        to {
+                            transform: translateX(100%);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Добавляем уведомление на страницу
+            document.body.appendChild(notification);
+            
+            // Автоматически скрываем через 5 секунд
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
     </script>
+    <script src="avtr/js/password-handler.js"></script>
 </head>
 <body class="register-body">
     <div class="register-container">
@@ -471,6 +602,28 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Смена пароля -->
+        <div class="profile-section">
+            <h2><i class="fas fa-key"></i> Смена пароля</h2>
+            <div class="password-change">
+                <div class="password-field">
+                    <label for="currentPassword">Текущий пароль:</label>
+                    <input type="password" id="currentPassword" class="password-input" placeholder="Введите текущий пароль">
+                </div>
+                <div class="password-field">
+                    <label for="newPassword">Новый пароль:</label>
+                    <input type="password" id="newPassword" class="password-input" placeholder="Введите новый пароль">
+                </div>
+                <div class="password-field">
+                    <label for="confirmPassword">Повторите новый пароль:</label>
+                    <input type="password" id="confirmPassword" class="password-input" placeholder="Повторите новый пароль">
+                </div>
+                <button class="change-password-btn" onclick="changePassword()">
+                    <i class="fas fa-save"></i> Сохранить пароль
+                </button>
             </div>
         </div>
 

@@ -262,6 +262,13 @@ body {
     height: 100vh; 
     overflow: hidden; 
 }
+
+/* Исключение для страницы профиля - разрешаем прокрутку */
+body.register-body {
+    overflow: auto;
+    min-height: 100vh;
+    height: auto;
+}
         .app-header { background: #2c3e50; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .logo { color: white; font-size: 24px; font-weight: 600; }
         .user-info { display: flex; align-items: center; gap: 15px; color: white; }
