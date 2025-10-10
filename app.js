@@ -1138,6 +1138,7 @@
                     document.getElementById('videoCallContainer').style.display = 'none';
                     document.getElementById('audioCallContainer').style.display = 'none';
                     document.getElementById('chatContainer').style.display = 'none';
+                    currentChatFriend = null; // Сбрасываем текущий чат
                 }, 1500);
                 
                 // Восстанавливаем кнопки друзей
@@ -1491,6 +1492,19 @@
                 console.log(`⚠️ Chat WebSocket недоступен для P2P сигнала ${type}, пропускаем`);
                 console.log(`⚠️ Состояние Chat WebSocket:`, window.chatWs ? window.chatWs.readyState : 'не определено');
             }
+        }
+        
+        // Функция для проверки, с каким пользователем открыт чат
+        function getCurrentChatUserId() {
+            // Проверяем, что чат действительно открыт физически
+            const chatContainer = document.getElementById('chatContainer');
+            if (!chatContainer || chatContainer.style.display === 'none' || !currentChatFriend) {
+                return 0;
+            }
+            
+            // Получаем ID пользователя по username
+            const friend = friendsData.friends.find(f => f.username === currentChatFriend);
+            return friend ? friend.contact_user_id : 0;
         }
         
         // Обработка входящих P2P сигналов
@@ -3302,8 +3316,15 @@
                 currentUser.log('❌ Ошибка сохранения входящего сообщения', 'error');
             }
             
-            // Увеличиваем счетчик непрочитанных только если чат НЕ активен
-            if (currentChatFriend !== senderUsername) {
+            // Получаем ID отправителя сообщения
+            const senderFriend = friendsData.friends.find(f => f.username === senderUsername);
+            const senderUserId = senderFriend ? senderFriend.contact_user_id : 0;
+            
+            // Проверяем, открыт ли чат с этим пользователем
+            const currentChatUserId = getCurrentChatUserId();
+            
+            // Увеличиваем счетчик непрочитанных только если чат НЕ открыт с этим пользователем
+            if (currentChatUserId !== senderUserId) {
                 if (!unreadMessages[senderUsername]) {
                     unreadMessages[senderUsername] = 0;
                 }
@@ -3311,9 +3332,10 @@
                 
                 // Обновляем индикатор непрочитанных
                 updateUnreadIndicator(senderUsername);
-                console.log(`🔴 Увеличен счетчик для неактивного чата ${senderUsername}:`, unreadMessages[senderUsername]);
+                console.log(`🔴 Увеличен счетчик для неактивного чата ${senderUsername} (ID: ${senderUserId}):`, unreadMessages[senderUsername]);
+                console.log(`🔍 Текущий открытый чат с ID: ${currentChatUserId}`);
             } else {
-                console.log(`✅ Чат активен с ${senderUsername}, счетчик не увеличивается`);
+                console.log(`✅ Чат активен с ${senderUsername} (ID: ${senderUserId}), счетчик не увеличивается`);
             }
         }
         
