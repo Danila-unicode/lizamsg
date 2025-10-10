@@ -7,6 +7,73 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="avtr/css/avatar-styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Стили для редактирования статуса */
+        .status-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .edit-status-btn, .save-status-btn, .cancel-status-btn {
+            background: none;
+            color: #007bff;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            padding: 5px;
+            margin-left: auto;
+        }
+        
+        .edit-status-btn:hover, .save-status-btn:hover {
+            color: #0056b3;
+            transform: scale(1.1);
+        }
+        
+        .cancel-status-btn {
+            color: #dc3545;
+        }
+        
+        .cancel-status-btn:hover {
+            color: #c82333;
+            transform: scale(1.1);
+        }
+        
+        .status-edit {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .status-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            max-width: calc(100% - 80px);
+        }
+        
+        .status-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .current-status {
+            margin: 0;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            min-height: 20px;
+        }
+    </style>
     <script>
         // Переменные для аватара
         let originalImage = null;
@@ -291,7 +358,6 @@
                         window.updateAvatarAfterUpload(data.avatar_path);
                     }
                     closeCropModal();
-                    alert('Аватар успешно загружен!');
                 } else {
                     console.error('Ошибка загрузки аватара:', data.message);
                     alert('Ошибка загрузки аватара: ' + data.message);
@@ -300,6 +366,77 @@
             .catch(error => {
                 console.error('Ошибка сети при загрузке аватара:', error);
                 alert('Ошибка сети при загрузке аватара.');
+            });
+        }
+
+        // Функции для редактирования статуса
+        function toggleStatusEdit() {
+            const statusDisplay = document.getElementById('userStatus');
+            const statusEdit = document.getElementById('statusEdit');
+            const statusInput = document.getElementById('statusInput');
+            
+            // Скрываем отображение статуса и показываем поле редактирования
+            statusDisplay.parentElement.style.display = 'none';
+            statusEdit.style.display = 'flex';
+            
+            // Заполняем поле текущим статусом
+            statusInput.value = statusDisplay.textContent;
+            statusInput.focus();
+            statusInput.select();
+        }
+
+        function cancelStatusEdit() {
+            const statusDisplay = document.getElementById('userStatus');
+            const statusEdit = document.getElementById('statusEdit');
+            
+            // Показываем отображение статуса и скрываем поле редактирования
+            statusDisplay.parentElement.style.display = 'flex';
+            statusEdit.style.display = 'none';
+        }
+
+        function saveStatus() {
+            const statusInput = document.getElementById('statusInput');
+            const newStatus = statusInput.value.trim();
+            
+            if (!newStatus) {
+                alert('Статус не может быть пустым');
+                return;
+            }
+            
+            // Получаем ID пользователя
+            const userData = localStorage.getItem('userData');
+            let userId = null;
+            if (userData) {
+                const data = JSON.parse(userData);
+                userId = data.userId;
+            }
+            
+            if (!userId) {
+                alert('Ошибка: ID пользователя не найден');
+                return;
+            }
+            
+            // Отправляем запрос на обновление статуса
+            fetch('avtr/api/update_status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `user_id=${userId}&user_status=${encodeURIComponent(newStatus)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем отображение статуса
+                    document.getElementById('userStatus').textContent = newStatus;
+                    cancelStatusEdit();
+                } else {
+                    alert('Ошибка обновления статуса: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка сети:', error);
+                alert('Ошибка сети при обновлении статуса');
             });
         }
     </script>
@@ -319,7 +456,21 @@
         <div class="profile-section">
             <h2><i class="fas fa-comment"></i> Мой статус</h2>
             <div class="status-display">
-                <p class="current-status" id="userStatus">Загрузка...</p>
+                <div class="status-container">
+                    <p class="current-status" id="userStatus">Загрузка...</p>
+                    <button class="edit-status-btn" id="editStatusBtn" onclick="toggleStatusEdit()">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+                <div class="status-edit" id="statusEdit" style="display: none;">
+                    <input type="text" id="statusInput" class="status-input" placeholder="Введите новый статус">
+                    <button class="save-status-btn" id="saveStatusBtn" onclick="saveStatus()">
+                        <i class="fas fa-save"></i>
+                    </button>
+                    <button class="cancel-status-btn" id="cancelStatusBtn" onclick="cancelStatusEdit()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -417,10 +568,10 @@
             
             if (avatarPath) {
                 avatarElement.innerHTML = `<img src="${avatarPath}" alt="Аватар" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">`;
-                statusElement.textContent = 'Аватар установлен';
+                statusElement.textContent = '';
             } else {
                 avatarElement.innerHTML = '<i class="fas fa-user-circle"></i>';
-                statusElement.textContent = 'Аватар не установлен';
+                statusElement.textContent = '';
             }
         }
 
