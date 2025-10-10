@@ -44,7 +44,7 @@ try {
     $userId = $user['id'];
     
     // Получаем принятые контакты
-    $query = "SELECT c.*, u.username 
+    $query = "SELECT c.*, u.id as contact_user_id, u.username, u.avatar_path 
               FROM contacts c 
               JOIN users u ON c.contact_id = u.id 
               WHERE c.user_id = ? AND c.status = 'accepted'";

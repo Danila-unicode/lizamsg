@@ -24,18 +24,25 @@ try {
 }
 
 $user_id = $_GET['user_id'] ?? '';
+$username = $_GET['username'] ?? '';
 
-if(empty($user_id)) {
-    echo json_encode(['success' => false, 'message' => 'ID пользователя не указан']);
+if(empty($user_id) && empty($username)) {
+    echo json_encode(['success' => false, 'message' => 'ID пользователя или username не указан']);
     exit();
 }
 
 try {
     
-    // Получаем данные пользователя
-    $query = "SELECT username, created_at, user_status, avatar_path FROM users WHERE id = ?";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$user_id]);
+    // Получаем данные пользователя по ID или username
+    if (!empty($user_id)) {
+        $query = "SELECT username, created_at, user_status, avatar_path FROM users WHERE id = ?";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$user_id]);
+    } else {
+        $query = "SELECT username, created_at, user_status, avatar_path FROM users WHERE username = ?";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$username]);
+    }
     
     if($stmt->rowCount() == 0) {
         echo json_encode(['success' => false, 'message' => 'Пользователь не найден']);

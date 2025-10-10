@@ -4980,7 +4980,10 @@
                 return `
                     <div class="friend-item" data-friend="${friend.username}" onclick="openChat('${friend.username}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='white'">
                         <div class="username" style="position: relative;">
-                            <i class="fas fa-user"></i> ${friend.username}${unreadIndicator}
+                            <div class="friend-avatar" style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #ddd; margin-right: 8px; vertical-align: middle; text-align: center; line-height: 20px; font-size: 12px; color: #666;" data-user-id="${friend.contact_user_id}">
+                                <i class="fas fa-user" style="font-size: 10px;"></i>
+                            </div>
+                            ${friend.username}${unreadIndicator}
                         </div>
                         <div class="actions" onclick="event.stopPropagation()">
                             <div class="call-buttons">
@@ -4994,6 +4997,32 @@
             }).join('');
             
             friendsList.innerHTML = friendsHtml;
+            
+            // Загружаем аватары для всех друзей
+            loadFriendsAvatars();
+        }
+        
+        // Функция для загрузки аватаров друзей
+        async function loadFriendsAvatars() {
+            const friendAvatars = document.querySelectorAll('.friend-avatar');
+            
+            for (let avatarDiv of friendAvatars) {
+                const userId = avatarDiv.getAttribute('data-user-id');
+                if (!userId) continue;
+
+                try {
+                    // Загружаем данные пользователя
+                    const response = await fetch(`avtr/api/get_user_data.php?user_id=${userId}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.user.avatar_path) {
+                        // Заменяем содержимое на аватар
+                        avatarDiv.innerHTML = `<img src="${result.user.avatar_path}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки аватара для user_id', userId, error);
+                }
+            }
         }
         
         // Обновление списка входящих запросов

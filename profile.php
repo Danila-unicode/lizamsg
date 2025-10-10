@@ -7,75 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="avtr/css/avatar-styles.css">
     <link rel="stylesheet" href="avtr/css/password-styles.css">
+    <link rel="stylesheet" href="avtr/css/profile-styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* Стили для редактирования статуса */
-        .status-container {
-            display: flex;
-            align-items: center;
-        }
-        
-        .edit-status-btn, .save-status-btn, .cancel-status-btn {
-            background: none;
-            color: #007bff;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            font-size: 16px;
-            padding: 5px;
-            margin-left: auto;
-        }
-        
-        .edit-status-btn:hover, .save-status-btn:hover {
-            color: #0056b3;
-            transform: scale(1.1);
-        }
-        
-        .cancel-status-btn {
-            color: #dc3545;
-        }
-        
-        .cancel-status-btn:hover {
-            color: #c82333;
-            transform: scale(1.1);
-        }
-        
-        .status-edit {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            width: 100%;
-        }
-        
-        .status-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-            max-width: calc(100% - 80px);
-        }
-        
-        .status-input:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-        
-        .current-status {
-            margin: 0;
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border: 1px solid #e9ecef;
-            min-height: 20px;
-        }
-        
-    </style>
     <script>
         // Переменные для аватара
         let originalImage = null;
@@ -573,82 +506,108 @@
     <script src="avtr/js/password-handler.js"></script>
 </head>
 <body class="register-body">
-    <div class="register-container">
-        <h1 class="register-title">
-            <i class="fas fa-user-cog"></i> Личный кабинет
-        </h1>
-        
-        <div class="profile-info">
-            <p><strong>Номер телефона:</strong> <span id="userPhone">Загрузка...</span></p>
-            <p><strong>Дата регистрации:</strong> <span id="userCreatedAt">Загрузка...</span></p>
+    <div class="profile-container">
+        <!-- Заголовок -->
+        <div class="profile-header">
+            <h1 class="profile-title">Личная информация</h1>
+            <p class="profile-subtitle">Управляйте своим именем, аватаром и личным статусом.</p>
         </div>
 
-        <!-- Статус пользователя -->
+        <!-- Личная информация -->
         <div class="profile-section">
-            <h2><i class="fas fa-comment"></i> Мой статус</h2>
-            <div class="status-display">
-                <div class="status-container">
-                    <p class="current-status" id="userStatus">Загрузка...</p>
-                    <button class="edit-status-btn" id="editStatusBtn" onclick="toggleStatusEdit()">
-                        <i class="fas fa-edit"></i>
-                    </button>
+            <h2 class="section-title">
+                <i class="fas fa-user"></i> Личная информация
+            </h2>
+            <p class="section-description">Управляйте своим именем, аватаром и личным статусом.</p>
+            
+            <div class="user-info-section">
+                <div id="currentAvatar" class="user-avatar-large">
+                    <i class="fas fa-user-circle"></i>
                 </div>
-                <div class="status-edit" id="statusEdit" style="display: none;">
-                    <input type="text" id="statusInput" class="status-input" placeholder="Введите новый статус">
-                    <button class="save-status-btn" id="saveStatusBtn" onclick="saveStatus()">
-                        <i class="fas fa-save"></i>
-                    </button>
-                    <button class="cancel-status-btn" id="cancelStatusBtn" onclick="cancelStatusEdit()">
-                        <i class="fas fa-times"></i>
-                    </button>
+                <div class="user-details">
+                    <h3 class="user-name" id="userPhone">Загрузка...</h3>
+                    <p class="user-username">@<span id="userCreatedAt">Загрузка...</span></p>
                 </div>
             </div>
-        </div>
 
-        <!-- Смена пароля -->
-        <div class="profile-section">
-            <h2><i class="fas fa-key"></i> Смена пароля</h2>
-            <div class="password-change">
-                <div class="password-field">
-                    <label for="currentPassword">Текущий пароль:</label>
-                    <input type="password" id="currentPassword" class="password-input" placeholder="Введите текущий пароль">
+            <!-- Статус пользователя -->
+            <div class="status-section">
+                <p class="status-label">Личное сообщение статуса</p>
+                <div class="status-display">
+                    <div class="status-container">
+                        <p class="current-status" id="userStatus">Загрузка...</p>
+                        <button class="edit-status-btn" id="editStatusBtn" onclick="toggleStatusEdit()">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                    <div class="status-edit" id="statusEdit" style="display: none;">
+                        <input type="text" id="statusInput" class="status-input" placeholder="Введите ваше сообщение статуса">
+                        <button class="save-status-btn" id="saveStatusBtn" onclick="saveStatus()">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button class="cancel-status-btn" id="cancelStatusBtn" onclick="cancelStatusEdit()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="password-field">
-                    <label for="newPassword">Новый пароль:</label>
-                    <input type="password" id="newPassword" class="password-input" placeholder="Введите новый пароль">
-                </div>
-                <div class="password-field">
-                    <label for="confirmPassword">Повторите новый пароль:</label>
-                    <input type="password" id="confirmPassword" class="password-input" placeholder="Повторите новый пароль">
-                </div>
-                <button class="change-password-btn" onclick="changePassword()">
-                    <i class="fas fa-save"></i> Сохранить пароль
-                </button>
             </div>
         </div>
 
         <!-- Аватар -->
         <div class="profile-section">
-            <h2><i class="fas fa-image"></i> Аватар</h2>
-            <div class="avatar-display">
-                <div id="currentAvatar" class="avatar-placeholder">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <p id="avatarStatus">Аватар не установлен</p>
-            </div>
+            <h2 class="section-title">
+                <i class="fas fa-image"></i> Аватар
+            </h2>
+            <p class="section-description">Обновите свою фотографию профиля.</p>
             
-            <div class="avatar-upload">
-                <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-                <button id="uploadAvatarBtn" class="upload-btn">
-                    <i class="fas fa-upload"></i> Загрузить аватар
-                </button>
+            <div class="avatar-section">
+                <div class="avatar-display">
+                    <div id="currentAvatar" class="avatar-placeholder">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="avatar-upload">
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                        <button id="uploadAvatarBtn" class="upload-btn">
+                            <i class="fas fa-upload"></i> Изменить аватар
+                        </button>
+                        <p id="avatarStatus" class="avatar-status" style="display: none;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Безопасность аккаунта -->
+        <div class="profile-section">
+            <h2 class="section-title">
+                <i class="fas fa-shield-alt"></i> Безопасность аккаунта
+            </h2>
+            <p class="section-description">Управляйте своим паролем и другими настройками безопасности.</p>
+            
+            <div class="password-section">
+                <div class="password-field">
+                    <label for="currentPassword">Текущий пароль</label>
+                    <input type="password" id="currentPassword" class="password-input" placeholder="Введите текущий пароль">
+                </div>
+                <div class="password-field">
+                    <label for="newPassword">Новый пароль</label>
+                    <input type="password" id="newPassword" class="password-input" placeholder="Введите новый пароль">
+                </div>
+                <div class="password-field">
+                    <label for="confirmPassword">Подтвердите новый пароль</label>
+                    <input type="password" id="confirmPassword" class="password-input" placeholder="Подтвердите новый пароль">
+                </div>
+                <div class="password-field">
+                    <button class="change-password-btn" onclick="changePassword()">
+                        <i class="fas fa-key"></i> Изменить пароль
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Навигация -->
         <div class="profile-navigation">
-            <button onclick="goBackToApp()" class="register-button" style="background: #4CAF50;">
-                <i class="fas fa-arrow-left"></i> Вернуться к общению
+            <button onclick="goBackToApp()" class="nav-button return">
+                <i class="fas fa-arrow-left"></i> Вернуться к чату
             </button>
         </div>
     </div>
@@ -716,17 +675,23 @@
 
         // Функция для обновления аватара после загрузки
         function updateAvatarAfterUpload(avatarPath) {
-            const avatarElement = document.getElementById('currentAvatar');
+            const avatarElements = document.querySelectorAll('#currentAvatar');
             const statusElement = document.getElementById('avatarStatus');
             
-            if (avatarPath) {
-                avatarElement.innerHTML = `<img src="${avatarPath}" alt="Аватар" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">`;
-                statusElement.textContent = '';
-            } else {
-                avatarElement.innerHTML = '<i class="fas fa-user-circle"></i>';
-                statusElement.textContent = '';
+            avatarElements.forEach(avatarElement => {
+                if (avatarPath) {
+                    avatarElement.innerHTML = `<img src="${avatarPath}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                } else {
+                    avatarElement.innerHTML = '<i class="fas fa-user-circle"></i>';
+                }
+            });
+            
+            // Скрываем статус аватара
+            if (statusElement) {
+                statusElement.style.display = 'none';
             }
         }
+
 
         // Глобальная функция для обновления аватара (вызывается из avatar-handler.js)
         window.updateAvatarAfterUpload = updateAvatarAfterUpload;
@@ -735,98 +700,5 @@
         document.addEventListener('DOMContentLoaded', loadUserData);
     </script>
 
-    <style>
-        .profile-loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .profile-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #4CAF50;
-        }
-
-        .profile-info p {
-            margin: 0;
-            color: #333;
-            font-size: 16px;
-        }
-
-        .profile-section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
-        }
-
-        .profile-section h2 {
-            color: #333;
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 8px;
-        }
-
-        .status-display {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .current-status {
-            margin: 0;
-            font-size: 16px;
-            color: #333;
-            font-style: italic;
-        }
-
-        .avatar-display {
-            text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .avatar-placeholder {
-            font-size: 80px;
-            color: #ccc;
-            margin-bottom: 10px;
-        }
-
-        .avatar-display p {
-            margin: 0;
-            color: #666;
-        }
-
-        .profile-navigation {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .profile-navigation button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .profile-navigation button:hover {
-            background: #45a049;
-            transform: translateY(-1px);
-        }
-
-    </style>
 </body>
 </html>
