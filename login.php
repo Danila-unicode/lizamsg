@@ -13,7 +13,7 @@
     <div class="register-container">
         <h1 class="register-title">Войти</h1>
 
-        <form id="loginForm" method="POST">
+        <form id="loginForm" method="POST" autocomplete="off">
             <div class="register-form-group">
                 <label for="countryCode" class="register-form-label">Страна</label>
                 <select name="countryCode" id="countryCode" class="register-form-input">
@@ -127,12 +127,12 @@
 
             <div class="register-form-group">
                 <label for="phone" class="register-form-label">Номер телефона</label>
-                <input type="tel" id="phone" name="phone" class="register-form-input" placeholder="9991234567" maxlength="10" pattern="[0-9]{10}" required>
+                <input type="tel" id="phone" name="phone" class="register-form-input" placeholder="9991234567" maxlength="10" pattern="[0-9]{10}" required autocomplete="off">
             </div>
 
             <div class="register-form-group">
                 <label for="password" class="register-form-label">Пароль</label>
-                <input type="password" id="password" name="password" class="register-form-input" placeholder="Введите ваш пароль" required>
+                <input type="password" id="password" name="password" class="register-form-input" placeholder="Введите ваш пароль" required autocomplete="new-password">
             </div>
 
             <button type="submit" class="register-button">

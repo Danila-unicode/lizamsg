@@ -18,8 +18,8 @@
             <i class="fas fa-phone"></i> LizaApp
         </div>
         <div class="user-info" id="headerUserInfo" style="display: none;">
-            <div class="user-avatar" id="userAvatar">U</div>
-            <span id="currentUserId"></span>
+            <div class="user-avatar" id="userAvatar" onclick="openProfile()">U</div>
+            <span id="currentUserId" onclick="openProfile()" style="cursor: pointer;"></span>
             <button class="logout-btn" onclick="resetUser()" style="display: inline-block;">Выйти</button>
         </div>
     </div>
@@ -35,8 +35,8 @@
             <div class="tab-content sidebar-content">
                 <!-- Поиск пользователей -->
                 <div class="search-section user-search">
-                    <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
-                    <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
+                    <h3><i class="fas fa-search"></i> Поиск по номеру телефона</h3>
+                    <input type="text" id="searchUsername" placeholder="+79991234567" style="width: 300px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
                     <button onclick="searchUser()" class="btn-primary mobile-search-btn"><i class="fas fa-search"></i> Найти</button>
                     <div id="searchResults"></div>
                 </div>
@@ -213,7 +213,7 @@
                     
                     <!-- Панель ввода сообщения (обычная) -->
                     <div id="chatInputPanel" style="display: flex; padding: 5px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
-                        <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)">
+                        <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)" autocomplete="off">
                         <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="fas fa-paper-plane"></i></button>
                         <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="far fa-smile"></i></button>
                     </div>
@@ -246,7 +246,7 @@
         <div class="user-section profile-section user-profile">
             <h2></h2>
             <div id="loginSection" class="login-form" style="display: none;">
-                <input type="text" id="userId" value="" placeholder="Введите ваш логин">
+                <input type="text" id="userId" value="" placeholder="Введите ваш логин" autocomplete="off">
                 <input type="password" id="userPassword" value="" placeholder="Введите пароль" style="display: none;">
                 <button onclick="showPasswordField(event)">Войти</button>
             </div>
@@ -254,7 +254,7 @@
             <div id="userInfo" class="user-info-panel" style="display: none;">
                 <div id="userStatus" class="status disconnected">Отключен</div>
                 <p><strong>Логин:</strong> <span id="profileCurrentUserId"></span></p>
-                <input type="text" id="targetUserId" value="" placeholder="Введите логин собеседника" class="old-functionality">
+                <input type="text" id="targetUserId" value="" placeholder="Введите логин собеседника" class="old-functionality" autocomplete="off">
                 <button onclick="startCall()" id="startCallBtn" disabled style="background: #4CAF50; color: white; display: none;" class="old-functionality"><i class="fas fa-phone"></i> Позвонить</button>
                 <button onclick="disconnectCall()" id="disconnectBtn" disabled style="background: #f44336; color: white; display: none;" class="old-functionality">🔌 Разорвать соединение</button>
                 <button onclick="logout()" style="background: #ff9800; color: white;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
@@ -392,7 +392,7 @@
                 <div style="padding: 15px; border-top: 1px solid #ddd; background: white; border-radius: 0 0 15px 15px;">
                     <div style="display: flex; gap: 10px;">
                         <button onclick="toggleEmojiPanel()" style="background: #ff9800; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">😀</button>
-                        <input type="text" id="messageInput" placeholder="Введите сообщение..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" onkeypress="handleMessageKeyPress(event)">
+                        <input type="text" id="messageInput" placeholder="Введите сообщение..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" onkeypress="handleMessageKeyPress(event)" autocomplete="off">
                         <button onclick="sendMessage()" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Отправить</button>
                     </div>
                 </div>
@@ -405,8 +405,8 @@
             
             <!-- Поиск пользователей -->
             <div class="search-section">
-                <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
-                <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
+                <h3><i class="fas fa-search"></i> Поиск по номеру телефона</h3>
+                <input type="text" id="searchUsername" placeholder="Введите номер телефона (+79991234567)" style="width: 300px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
                 <button onclick="searchUser()" class="btn-primary"><i class="fas fa-search"></i> Найти</button>
                 <div id="searchResults" class="search-results"></div>
         </div>
@@ -482,7 +482,59 @@
             // Перенаправляем на страницу входа
             window.location.href = 'login.php';
         }
+        
+        function openProfile() {
+            // Открываем личный кабинет в том же окне
+            window.location.href = 'profile.php';
+        }
+        
     </script>
+    
+    <script>
+        // Принудительное отключение автозаполнения для полей поиска
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInputs = document.querySelectorAll('#searchUsername');
+            searchInputs.forEach(input => {
+                // Устанавливаем атрибуты
+                input.setAttribute('autocomplete', 'new-password');
+                input.setAttribute('autocapitalize', 'off');
+                input.setAttribute('autocorrect', 'off');
+                input.setAttribute('spellcheck', 'false');
+                
+                // Очищаем поле при загрузке
+                input.value = '';
+                
+                // Дополнительные методы отключения
+                input.addEventListener('focus', function() {
+                    this.setAttribute('autocomplete', 'new-password');
+                    this.value = '';
+                });
+                
+                input.addEventListener('input', function() {
+                    this.setAttribute('autocomplete', 'new-password');
+                });
+                
+                // Очищаем поле при каждом фокусе
+                input.addEventListener('focus', function() {
+                    setTimeout(() => {
+                        if (this.value && !this.value.startsWith('+')) {
+                            this.value = '';
+                        }
+                    }, 100);
+                });
+                
+                // Предотвращаем вставку из буфера автозаполнения
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const text = (e.clipboardData || window.clipboardData).getData('text');
+                    if (text && text.startsWith('+')) {
+                        this.value = text;
+                    }
+                });
+            });
+        });
+    </script>
+    
     <script src="app.js?v=5"></script>
 </body>
 </html>

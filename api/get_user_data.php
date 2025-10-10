@@ -23,46 +23,34 @@ try {
     exit;
 }
 
-$username = $_GET['username'] ?? '';
+$user_id = $_GET['user_id'] ?? '';
 
-if(empty($username)) {
-    echo json_encode(['success' => false, 'message' => 'Логин не указан']);
+if(empty($user_id)) {
+    echo json_encode(['success' => false, 'message' => 'ID пользователя не указан']);
     exit();
 }
 
 try {
-    // Найти ID пользователя
-    $query = "SELECT id FROM users WHERE username = ?";
+    
+    // Получаем данные пользователя
+    $query = "SELECT username, created_at, user_status, avatar_path FROM users WHERE id = ?";
     $stmt = $pdo->prepare($query);
-    $stmt->execute([$username]);
+    $stmt->execute([$user_id]);
     
     if($stmt->rowCount() == 0) {
         echo json_encode(['success' => false, 'message' => 'Пользователь не найден']);
         exit();
     }
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    $userId = $user['id'];
     
-    // Получаем входящие запросы (где текущий пользователь - получатель)
-    // contact_id = текущий пользователь (получатель)
-    // user_id = отправитель запроса
-    $query = "SELECT c.*, u.username
-              FROM contacts c
-              JOIN users u ON c.user_id = u.id
-              WHERE c.contact_id = ? AND c.status = 'pending'";
-    
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$userId]);
-    
-    // Логируем для отладки
-    error_log("Get requests API - User ID: $userId, Username: $username");
-    
-    $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    echo json_encode([
-        'success' => true,
-        'requests' => $requests
-    ]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Добавляем отладочную информацию
+            error_log("User data for ID $user_id: " . json_encode($user));
+
+            echo json_encode([
+                'success' => true,
+                'user' => $user
+            ]);
     
 } catch (Exception $e) {
     echo json_encode([

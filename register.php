@@ -176,7 +176,7 @@ if ($_POST) {
         <div class="register-success"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
         
-        <form method="POST">
+        <form method="POST" autocomplete="off">
             <div class="register-form-group">
                 <label for="countryCode" class="register-form-label">Страна</label>
                 <select name="countryCode" id="countryCode" class="register-form-input">
@@ -280,13 +280,13 @@ if ($_POST) {
                 <input type="tel" id="phone" name="phone" class="register-form-input" required 
                        placeholder="9991234567" maxlength="10"
                        value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>"
-                       pattern="[0-9]{10}">
+                       pattern="[0-9]{10}" autocomplete="off">
             </div>
             
             <div class="register-form-group">
                 <label for="password" class="register-form-label">Пароль</label>
                 <input type="password" id="password" name="password" class="register-form-input" required 
-                       placeholder="Придумайте пароль" minlength="5">
+                       placeholder="Придумайте пароль" minlength="5" autocomplete="new-password">
                 <div class="register-password-hint">Не используйте простые пароли</div>
             </div>
             

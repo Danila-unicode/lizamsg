@@ -4793,12 +4793,18 @@
         async function searchUser() {
             const username = document.getElementById('searchUsername').value.trim();
             if (!username) {
-                alert('Введите логин пользователя');
+                alert('Введите номер телефона в международном формате (+79991234567)');
                 return;
             }
             
             if (username === currentUser.id) {
                 alert('Нельзя искать самого себя');
+                return;
+            }
+            
+            // Проверяем формат номера телефона
+            if (!username.startsWith('+') || username.length < 10) {
+                alert('Введите номер телефона в международном формате (+79991234567)');
                 return;
             }
             
@@ -4908,7 +4914,7 @@
             
             try {
                 // Загружаем друзей
-                const friendsResponse = await fetch(`https://lizaapp.ru/api/get_contacts.php?username=${currentUser.id}`, {
+                const friendsResponse = await fetch(`https://lizaapp.ru/api/get_contacts.php?username=${encodeURIComponent(currentUser.id)}`, {
                     method: 'GET'
                 });
                 if (friendsResponse.ok) {
@@ -4920,19 +4926,29 @@
                 }
                 
                 // Загружаем входящие запросы
-                const requestsResponse = await fetch(`https://lizaapp.ru/api/get_requests.php?username=${currentUser.id}`, {
+                console.log('🔍 currentUser.id для API:', currentUser.id);
+                console.log('🔍 Тип currentUser.id:', typeof currentUser.id);
+                
+                const requestsResponse = await fetch(`https://lizaapp.ru/api/get_requests.php?username=${encodeURIComponent(currentUser.id)}`, {
                     method: 'GET'
                 });
                 if (requestsResponse.ok) {
                     const requestsResponseData = await requestsResponse.json();
+                    console.log('📥 Ответ API для запросов:', requestsResponseData);
+                    
                     if (requestsResponseData.success) {
                         friendsData.requests = requestsResponseData.requests || [];
+                        console.log('✅ Запросы загружены:', friendsData.requests);
                         updateRequestsList();
+                    } else {
+                        console.log('❌ Ошибка загрузки запросов:', requestsResponseData.message);
                     }
+                } else {
+                    console.log('❌ Ошибка HTTP при загрузке запросов:', requestsResponse.status);
                 }
                 
                 // Загружаем отправленные запросы
-                const sentRequestsResponse = await fetch(`https://lizaapp.ru/api/get_sent_requests.php?username=${currentUser.id}`, {
+                const sentRequestsResponse = await fetch(`https://lizaapp.ru/api/get_sent_requests.php?username=${encodeURIComponent(currentUser.id)}`, {
                     method: 'GET'
                 });
                 if (sentRequestsResponse.ok) {
@@ -4982,9 +4998,14 @@
         
         // Обновление списка входящих запросов
         function updateRequestsList() {
+            console.log('🔄 updateRequestsList вызвана');
+            console.log('📊 friendsData.requests:', friendsData.requests);
+            console.log('📊 Количество запросов:', friendsData.requests.length);
+            
             const requestsList = document.getElementById('requestsList');
             
             if (friendsData.requests.length === 0) {
+                console.log('❌ Нет запросов для отображения');
                 requestsList.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">Нет запросов</p>';
                 return;
             }
@@ -5339,6 +5360,7 @@
                 loadFriendsData();
             }
         }
+
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', async function() {

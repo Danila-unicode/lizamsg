@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API запросов</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Тест API запросов</h1>
+    
+    <div class="test-section">
+        <h3>1. Тест для пользователя +79298290753 (ID 28)</h3>
+        <button onclick="testUser28()">Проверить запросы</button>
+        <div id="result28" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Тест для пользователя +79182725362 (ID 29)</h3>
+        <button onclick="testUser29()">Проверить запросы</button>
+        <div id="result29" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Тест отправленных запросов</h3>
+        <button onclick="testSentRequests()">Проверить отправленные</button>
+        <div id="resultSent" class="result"></div>
+    </div>
+
+    <script>
+        async function testUser28() {
+            const resultDiv = document.getElementById('result28');
+            resultDiv.textContent = 'Загрузка...';
+            
+            try {
+                const response = await fetch('https://lizaapp.ru/api/get_requests.php?username=+79298290753');
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = 'Ошибка: ' + error.message;
+            }
+        }
+        
+        async function testUser29() {
+            const resultDiv = document.getElementById('result29');
+            resultDiv.textContent = 'Загрузка...';
+            
+            try {
+                const response = await fetch('https://lizaapp.ru/api/get_requests.php?username=+79182725362');
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = 'Ошибка: ' + error.message;
+            }
+        }
+        
+        async function testSentRequests() {
+            const resultDiv = document.getElementById('resultSent');
+            resultDiv.textContent = 'Загрузка...';
+            
+            try {
+                const response = await fetch('https://lizaapp.ru/api/get_sent_requests.php?username=+79182725362');
+                const data = await response.json();
+                
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = 'Ошибка: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
