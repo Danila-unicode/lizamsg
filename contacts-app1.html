@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Контакты и Звонки v1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #6c757d;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .tab:hover {
+            color: #007bff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .search-results {
+            margin-top: 10px;
+        }
+
+        .search-result {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        .contact-item, .request-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-phone {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .contact-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-entry.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .log-entry.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .log-entry.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .log-entry.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📞 WebRTC Контакты и Звонки v1</h1>
+            <p>Система управления контактами и видеозвонками</p>
+            <div style="margin-top: 15px;">
+                <span id="userInfo" style="background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 20px; font-size: 14px;"></span>
+                <button class="btn btn-danger" onclick="logout()" style="margin-left: 15px; padding: 8px 15px; font-size: 14px;">Выйти</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card user-section">
+                <h2>📞 Статус WebRTC</h2>
+                
+                <div class="status disconnected" id="connectionStatus">
+                    Статус: Готов к звонкам
+                </div>
+
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        <video id="localVideo" autoplay muted></video>
+                        <div class="video-label">Ваше видео</div>
+                    </div>
+                    <div class="video-wrapper">
+                        <video id="remoteVideo" autoplay></video>
+                        <div class="video-label">Удаленное видео</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn" id="endCallBtn" onclick="endCall()" disabled>Завершить звонок</button>
+                </div>
+            </div>
+
+            <div class="card contacts-section">
+                <h2>👥 Контакты</h2>
+                
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('contacts')">Доверенные</button>
+                    <button class="tab" onclick="showTab('requests')">Запросы</button>
+                    <button class="tab" onclick="showTab('rejected')">Отклоненные</button>
+                </div>
+
+                <div id="contacts-tab" class="tab-content active">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="Поиск по номеру телефона..." onkeyup="searchUser()">
+                        <div id="searchResults" class="search-results"></div>
+                    </div>
+                    
+                    <div id="contactsList">
+                        <p style="text-align: center; color: #666; padding: 20px;">Загрузка контактов...</p>
+                    </div>
+                </div>
+
+                <div id="requests-tab" class="tab-content">
+                    <div id="requestsList">
+                        <p style="text-align: center; color: #666; padding: 20px;">Загрузка запросов...</p>
+                    </div>
+                </div>
+
+                <div id="rejected-tab" class="tab-content">
+                    <div id="rejectedList">
+                        <p style="text-align: center; color: #666; padding: 20px;">Загрузка отклоненных...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 Лог событий</h2>
+            <div id="log" class="log-container">
+                <div class="log-entry info">[Система] Приложение готово к работе</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно входящего звонка -->
+    <div id="incomingCallModal" class="modal">
+        <div class="modal-content">
+            <h3>📞 Входящий звонок</h3>
+            <p id="incomingCallFrom">Звонит пользователь</p>
+            <div class="modal-buttons">
+                <button class="btn btn-success" onclick="acceptCall()">Принять</button>
+                <button class="btn btn-danger" onclick="rejectCall()">Отклонить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // HTTP сигналинг сервер
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+
+        // Переменные
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let currentUserId = null;
+        let isInitialized = false;
+        let signalCheckInterval = null;
+        let lastSignalId = 0;
+        let currentCallTarget = null;
+        let incomingCallFrom = null;
+        let currentUser = null;
+
+        // Логирование с цветовой кодировкой
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Обновление статуса
+        function updateStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = `Статус: ${status === 'connected' ? 'Подключен' : 
+                                                      status === 'connecting' ? 'Подключение...' : 'Отключен'}`;
+        }
+
+        // Показать вкладку
+        function showTab(tabName) {
+            // Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Показать выбранную вкладку
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Загрузить данные для вкладки
+            if (tabName === 'contacts') {
+                loadContacts();
+            } else if (tabName === 'requests') {
+                loadRequests();
+            } else if (tabName === 'rejected') {
+                loadRejected();
+            }
+        }
+
+        // HTTP сигналинг функции
+        async function joinRoom(roomId) {
+            try {
+                log(`Присоединение к комнате ${roomId}...`, 'info');
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'join',
+                        roomId: roomId,
+                        userId: currentUserId
+                    })
+                });
+                
+                const data = await response.json();
+                log(`Ответ сервера: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.success) {
+                    log('Присоединились к комнате', 'success');
+                    return true;
+                } else {
+                    log(`Ошибка присоединения: ${data.error}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`Ошибка HTTP запроса: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function sendSignal(roomId, to, type, data) {
+            try {
+                log(`Отправка сигнала: ${type} от ${currentUserId} к ${to} в комнату ${roomId}`, 'info');
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        roomId: roomId,
+                        from: currentUserId,
+                        to: to,
+                        type: type,
+                        data: data
+                    })
+                });
+                
+                const result = await response.json();
+                log(`Ответ сервера: ${JSON.stringify(result)}`, 'info');
+                
+                return result.success;
+            } catch (error) {
+                log(`Ошибка отправки сигнала: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function checkSignals(roomId) {
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&roomId=${roomId}&userId=${currentUserId}&since=${lastSignalId}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success && data.signals && data.signals.length > 0) {
+                    log(`Получено ${data.signals.length} сигналов`, 'info');
+                    
+                    data.signals.forEach(signal => {
+                        log(`Обрабатываем сигнал: ${signal.type} от ${signal.from}`, 'info');
+                        handleIncomingSignal(signal);
+                        lastSignalId = Math.max(lastSignalId, signal.id);
+                    });
+                } else {
+                    // Логируем, что сигналов нет (только раз в 20 проверок)
+                    if (Math.random() < 0.05) {
+                        log(`Нет новых сигналов (проверка #${Math.floor(Date.now() / 1000)})`, 'info');
+                    }
+                }
+            } catch (error) {
+                log(`Ошибка проверки сигналов: ${error.message}`, 'error');
+            }
+        }
+
+        // Инициализация WebRTC
+        async function initWebRTC() {
+            try {
+                log('Инициализация WebRTC...', 'info');
+                updateStatus('connecting');
+
+                // Очищаем старые соединения
+                if (peerConnection) {
+                    // Очищаем все обработчики
+                    peerConnection.onicecandidate = null;
+                    peerConnection.ontrack = null;
+                    peerConnection.onconnectionstatechange = null;
+                    peerConnection.oniceconnectionstatechange = null;
+                    peerConnection.onicegatheringstatechange = null;
+                    peerConnection.onsignalingstatechange = null;
+                    
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                
+                // Сбрасываем состояние звонка
+                currentCallTarget = null;
+                incomingCallFrom = null;
+
+                // Используем ID пользователя из сессии
+                currentUserId = currentUser ? `user${currentUser.id}` : 'user1';
+                log(`WebRTC User ID: ${currentUserId} (Phone: ${currentUser ? currentUser.phone : 'unknown'})`, 'info');
+                
+                // Получаем медиа потоки
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+                document.getElementById('localVideo').srcObject = localStream;
+                log('Медиа потоки получены', 'success');
+                
+                // Логируем информацию о локальных треках
+                localStream.getTracks().forEach(track => {
+                    log(`Локальный трек: ${track.kind} (enabled: ${track.enabled})`, 'info');
+                });
+                
+                // Проверяем, что локальное видео установлено
+                const localVideo = document.getElementById('localVideo');
+                if (localVideo.srcObject) {
+                    log('Локальное видео установлено в элемент', 'success');
+                } else {
+                    log('Ошибка: локальное видео не установлено', 'error');
+                }
+
+                // Создаем peer connection
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { 
+                            urls: 'turn:62.84.126.200:3478', 
+                            username: 'webrtc', 
+                            credential: 'password123' 
+                        },
+                        { 
+                            urls: 'turns:62.84.126.200:3479', 
+                            username: 'webrtc', 
+                            credential: 'password123' 
+                        }
+                    ],
+                    iceCandidatePoolSize: 10,
+                    iceTransportPolicy: 'all',
+                    bundlePolicy: 'max-bundle',
+                    rtcpMuxPolicy: 'require',
+                    sdpSemantics: 'unified-plan'
+                });
+
+                // Добавляем локальные треки
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                    log(`Добавлен трек: ${track.kind}`, 'info');
+                });
+
+                // Настраиваем обработчики событий
+                peerConnection.onicecandidate = async (event) => {
+                    if (event.candidate) {
+                        log(`ICE кандидат: ${event.candidate.candidate}`, 'info');
+                        await sendSignal('room1', 'broadcast', 'ice-candidate', event.candidate);
+                    } else {
+                        log('ICE gathering завершен', 'info');
+                    }
+                };
+
+                peerConnection.onconnectionstatechange = () => {
+                    log(`🔄 Состояние соединения изменилось: ${peerConnection.connectionState}`, 'info');
+                };
+
+                peerConnection.oniceconnectionstatechange = () => {
+                    log(`🧊 ICE состояние изменилось: ${peerConnection.iceConnectionState}`, 'info');
+                };
+
+                peerConnection.onicegatheringstatechange = () => {
+                    log(`🔍 ICE gathering состояние: ${peerConnection.iceGatheringState}`, 'info');
+                };
+
+                peerConnection.onsignalingstatechange = () => {
+                    log(`📡 Signaling состояние: ${peerConnection.signalingState}`, 'info');
+                };
+
+                peerConnection.ontrack = (event) => {
+                    log('Получен удаленный поток', 'success');
+                    remoteStream = event.streams[0];
+                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                    log(`Получен удаленный трек: ${event.track.kind} (enabled: ${event.track.enabled})`, 'success');
+                    
+                    // Проверяем, что удаленное видео установлено
+                    const remoteVideo = document.getElementById('remoteVideo');
+                    if (remoteVideo.srcObject) {
+                        log('Удаленное видео установлено в элемент', 'success');
+                    } else {
+                        log('Ошибка: удаленное видео не установлено', 'error');
+                    }
+                };
+
+                // Присоединяемся к комнате
+                const joined = await joinRoom('room1');
+                if (joined) {
+                    isInitialized = true;
+                    updateStatus('connected');
+                    log('WebRTC инициализирован успешно!', 'success');
+                    startSignalPolling('room1');
+                    return true;
+                } else {
+                    log('Ошибка присоединения к комнате', 'error');
+                    updateStatus('disconnected');
+                    return false;
+                }
+
+            } catch (error) {
+                log('Ошибка инициализации WebRTC: ' + error.message, 'error');
+                updateStatus('disconnected');
+                return false;
+            }
+        }
+
+        // Обработка входящих сигналов
+        async function handleIncomingSignal(signal) {
+            try {
+                if (signal.from === currentUserId) {
+                    log(`Игнорируем свой собственный сигнал: ${signal.type}`, 'info');
+                    return;
+                }
+
+                if (signal.type === 'offer') {
+                    log('Входящий звонок!', 'warning');
+                    incomingCallFrom = signal.from;
+                    showIncomingCallModal(signal.from);
+                    log(`Текущее состояние перед установкой offer: ${peerConnection.signalingState}`, 'info');
+
+                    if (peerConnection.signalingState === 'stable') {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data));
+                        log('Remote description установлен', 'success');
+                        
+                        // Добавляем отложенные ICE кандидаты
+                        if (peerConnection.pendingIceCandidates) {
+                            log(`Добавляем ${peerConnection.pendingIceCandidates.length} отложенных ICE кандидатов`, 'info');
+                            for (const candidate of peerConnection.pendingIceCandidates) {
+                                try {
+                                    await peerConnection.addIceCandidate(candidate);
+                                    log('Отложенный ICE кандидат добавлен', 'info');
+                                } catch (error) {
+                                    log(`Ошибка добавления отложенного ICE кандидата: ${error.message}`, 'error');
+                                }
+                            }
+                            peerConnection.pendingIceCandidates = [];
+                        }
+                        
+                        // Проверяем состояние соединения через некоторое время
+                        setTimeout(() => {
+                            log(`Текущее состояние соединения: ${peerConnection.connectionState}`, 'info');
+                            log(`Текущее ICE состояние: ${peerConnection.iceConnectionState}`, 'info');
+                        }, 2000);
+                    } else {
+                        log(`Игнорируем offer - неправильное состояние: ${peerConnection.signalingState}`, 'warning');
+                    }
+                } else if (signal.type === 'answer') {
+                    log('Получен answer', 'success');
+                    log(`Текущее состояние перед установкой answer: ${peerConnection.signalingState}`, 'info');
+
+                    if (peerConnection.signalingState === 'have-local-offer') {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data));
+                        log('Answer установлен', 'success');
+                        
+                        // Добавляем отложенные ICE кандидаты
+                        if (peerConnection.pendingIceCandidates) {
+                            log(`Добавляем ${peerConnection.pendingIceCandidates.length} отложенных ICE кандидатов`, 'info');
+                            for (const candidate of peerConnection.pendingIceCandidates) {
+                                try {
+                                    await peerConnection.addIceCandidate(candidate);
+                                    log('Отложенный ICE кандидат добавлен', 'info');
+                                } catch (error) {
+                                    log(`Ошибка добавления отложенного ICE кандидата: ${error.message}`, 'error');
+                                }
+                            }
+                            peerConnection.pendingIceCandidates = [];
+                        }
+                        
+                        // Проверяем состояние соединения через некоторое время
+                        setTimeout(() => {
+                            log(`Текущее состояние соединения: ${peerConnection.connectionState}`, 'info');
+                            log(`Текущее ICE состояние: ${peerConnection.iceConnectionState}`, 'info');
+                        }, 3000);
+                    } else {
+                        log(`Игнорируем answer - неправильное состояние: ${peerConnection.signalingState}`, 'warning');
+                    }
+                } else if (signal.type === 'ice-candidate') {
+                    log('Получен ICE кандидат', 'info');
+                    try {
+                        if (peerConnection.remoteDescription) {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(signal.data));
+                            log('ICE кандидат добавлен', 'info');
+                        } else {
+                            log('Откладываем ICE кандидат - remote description не установлен', 'warning');
+                            if (!peerConnection.pendingIceCandidates) {
+                                peerConnection.pendingIceCandidates = [];
+                            }
+                            peerConnection.pendingIceCandidates.push(new RTCIceCandidate(signal.data));
+                        }
+                    } catch (error) {
+                        log(`Ошибка добавления ICE кандидата: ${error.message}`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(`Ошибка обработки сигнала: ${error.message}`, 'error');
+            }
+        }
+
+        // Запуск проверки сигналов
+        function startSignalPolling(roomId) {
+            if (signalCheckInterval) {
+                clearInterval(signalCheckInterval);
+            }
+            
+            log('Начинаем проверку входящих сигналов...', 'info');
+            signalCheckInterval = setInterval(() => {
+                checkSignals(roomId);
+            }, 1000); // Проверяем каждую секунду
+        }
+
+        // Остановка проверки сигналов
+        function stopSignalPolling() {
+            if (signalCheckInterval) {
+                clearInterval(signalCheckInterval);
+                signalCheckInterval = null;
+                log('Остановлена проверка сигналов', 'info');
+            }
+        }
+
+        // Показать модальное окно входящего звонка
+        function showIncomingCallModal(from) {
+            document.getElementById('incomingCallFrom').textContent = `Звонит: ${from}`;
+            document.getElementById('incomingCallModal').style.display = 'block';
+        }
+
+        // Скрыть модальное окно входящего звонка
+        function hideIncomingCallModal() {
+            document.getElementById('incomingCallModal').style.display = 'none';
+        }
+
+        // API функции для контактов
+        async function searchUser() {
+            const phone = document.getElementById('searchInput').value.trim();
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (phone.length < 10) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api/search_user.php?phone=${encodeURIComponent(phone)}`);
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    resultsContainer.innerHTML = `
+                        <div class="search-result">
+                            <div class="contact-info">
+                                <div class="contact-phone">${data.user.phone}</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="btn btn-success" onclick="sendContactRequest(${data.user.id}, '${data.user.phone}')">Добавить</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = '<div class="search-result">Пользователь не найден</div>';
+                }
+                
+            } catch (error) {
+                log(`Ошибка поиска: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendContactRequest(contactId, phone) {
+            try {
+                const response = await fetch('api/send_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contact_id: contactId,
+                        phone: phone
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Запрос на контакт отправлен`, 'success');
+                    document.getElementById('searchResults').innerHTML = '';
+                    document.getElementById('searchInput').value = '';
+                } else {
+                    log(`Ошибка отправки: ${data.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка отправки запроса: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadContacts() {
+            const contactsList = document.getElementById('contactsList');
+            
+            try {
+                const response = await fetch('api/get_contacts.php');
+                const data = await response.json();
+                
+                if (data.success && data.contacts.length > 0) {
+                    contactsList.innerHTML = data.contacts.map(contact => `
+                        <div class="contact-item">
+                            <div class="contact-info">
+                                <div class="contact-phone">${contact.phone}</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="btn btn-success" onclick="callContact(${contact.contact_id}, '${contact.phone}')">Позвонить</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    contactsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Нет доверенных контактов</p>';
+                }
+                
+            } catch (error) {
+                log(`Ошибка загрузки контактов: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadRequests() {
+            const requestsList = document.getElementById('requestsList');
+            
+            try {
+                const response = await fetch('api/get_requests.php');
+                const data = await response.json();
+                
+                if (data.success && data.requests.length > 0) {
+                    requestsList.innerHTML = data.requests.map(request => `
+                        <div class="request-item">
+                            <div class="contact-info">
+                                <div class="contact-phone">${request.phone}</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="btn btn-success" onclick="acceptRequest(${request.id})">Принять</button>
+                                <button class="btn btn-danger" onclick="rejectRequest(${request.id})">Отклонить</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    requestsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Нет запросов</p>';
+                }
+                
+            } catch (error) {
+                log(`Ошибка загрузки запросов: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadRejected() {
+            const rejectedList = document.getElementById('rejectedList');
+            
+            try {
+                const response = await fetch('api/get_rejected.php');
+                const data = await response.json();
+                
+                if (data.success && data.rejected.length > 0) {
+                    rejectedList.innerHTML = data.rejected.map(reject => `
+                        <div class="contact-item">
+                            <div class="contact-info">
+                                <div class="contact-phone">${reject.phone}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    rejectedList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Нет отклоненных</p>';
+                }
+                
+            } catch (error) {
+                log(`Ошибка загрузки отклоненных: ${error.message}`, 'error');
+            }
+        }
+
+        async function acceptRequest(requestId) {
+            try {
+                const response = await fetch('api/accept_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Запрос принят`, 'success');
+                    loadRequests();
+                    loadContacts();
+                } else {
+                    log(`Ошибка принятия: ${data.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка принятия запроса: ${error.message}`, 'error');
+            }
+        }
+
+        async function rejectRequest(requestId) {
+            try {
+                const response = await fetch('api/reject_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Запрос отклонен`, 'success');
+                    loadRequests();
+                    loadRejected();
+                } else {
+                    log(`Ошибка отклонения: ${data.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка отклонения запроса: ${error.message}`, 'error');
+            }
+        }
+
+        // Звонок контакту
+        async function callContact(contactId, phone) {
+            try {
+                log(`Звонок контакту: ${phone} (ID: ${contactId})`, 'info');
+                
+                // Проверяем состояние WebRTC
+                if (!isInitialized || peerConnection.signalingState !== 'stable') {
+                    log('Переинициализация WebRTC для звонка...', 'info');
+                    await initWebRTC();
+                }
+                
+                currentCallTarget = `user${contactId}`;
+                
+                // Создаем offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                log('Offer создан', 'success');
+                
+                // Отправляем offer
+                const sent = await sendSignal('room1', 'broadcast', 'offer', offer);
+                if (sent) {
+                    log('Offer отправлен', 'success');
+                    document.getElementById('endCallBtn').disabled = false;
+                } else {
+                    log('Ошибка отправки offer', 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка начала звонка: ${error.message}`, 'error');
+            }
+        }
+
+        // Принять звонок
+        async function acceptCall() {
+            try {
+                log('Принимаем входящий звонок...', 'info');
+                
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                const sent = await sendSignal('room1', 'broadcast', 'answer', answer);
+                if (sent) {
+                    log('Answer отправлен', 'success');
+                    document.getElementById('endCallBtn').disabled = false;
+                }
+                
+                hideIncomingCallModal();
+                
+                // Проверяем состояние соединения через некоторое время
+                setTimeout(() => {
+                    log(`Состояние после принятия звонка: ${peerConnection.connectionState}`, 'info');
+                    log(`ICE состояние после принятия: ${peerConnection.iceConnectionState}`, 'info');
+                }, 2000);
+                
+            } catch (error) {
+                log(`Ошибка принятия звонка: ${error.message}`, 'error');
+            }
+        }
+
+        // Отклонить звонок
+        function rejectCall() {
+            log('Звонок отклонен', 'info');
+            hideIncomingCallModal();
+        }
+
+        // Завершить звонок
+        async function endCall() {
+            log('Завершаем звонок...', 'info');
+            
+            // Останавливаем проверку сигналов
+            stopSignalPolling();
+            
+            if (peerConnection) {
+                // Очищаем все обработчики
+                peerConnection.onicecandidate = null;
+                peerConnection.ontrack = null;
+                peerConnection.onconnectionstatechange = null;
+                peerConnection.oniceconnectionstatechange = null;
+                peerConnection.onicegatheringstatechange = null;
+                peerConnection.onsignalingstatechange = null;
+                
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            document.getElementById('localVideo').srcObject = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            
+            isInitialized = false;
+            currentCallTarget = null;
+            updateStatus('disconnected');
+            document.getElementById('endCallBtn').disabled = true;
+            
+            log('Звонок завершен', 'success');
+            
+            // Переинициализируем WebRTC для новых звонков
+            log('Переинициализация WebRTC...', 'info');
+            await initWebRTC();
+        }
+
+        // Проверка авторизации
+        async function checkAuth() {
+            try {
+                const response = await fetch('api/check_auth.php');
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    currentUser = data.user;
+                    document.getElementById('userInfo').textContent = `👤 ${data.user.phone}`;
+                    log(`Авторизован как: ${data.user.phone}`, 'success');
+                    return true;
+                } else {
+                    log('Не авторизован, перенаправление на страницу входа', 'warning');
+                    window.location.href = 'auth.html';
+                    return false;
+                }
+            } catch (error) {
+                log(`Ошибка проверки авторизации: ${error.message}`, 'error');
+                window.location.href = 'auth.html';
+                return false;
+            }
+        }
+
+        // Выход из системы
+        async function logout() {
+            try {
+                const response = await fetch('api/logout.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('Выход выполнен', 'success');
+                    window.location.href = 'auth.html';
+                } else {
+                    log('Ошибка выхода', 'error');
+                }
+            } catch (error) {
+                log(`Ошибка выхода: ${error.message}`, 'error');
+            }
+        }
+
+        // Проверка поддержки WebRTC
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            log('WebRTC не поддерживается в этом браузере', 'error');
+        } else {
+            log('WebRTC поддерживается', 'success');
+        }
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', async function() {
+            const isAuth = await checkAuth();
+            if (isAuth) {
+                log('Приложение контактов готово к работе', 'success');
+                // Загружаем контакты при старте
+                loadContacts();
+                // Инициализируем WebRTC для получения входящих звонков
+                await initWebRTC();
+            }
+        });
+    </script>
+</body>
+</html>

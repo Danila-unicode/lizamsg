@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Тест сервера</title>
+</head>
+<body>
+    <h1>Тест сервера</h1>
+    <button onclick="testPing()">Тест Ping</button>
+    <button onclick="testSignals()">Тест Signals</button>
+    <div id="results"></div>
+
+    <script>
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+        
+        async function testPing() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Тест Ping:</h2>';
+            
+            const pingData = {
+                action: 'ping',
+                from: 'test_user_1',
+                to: 'test_user_2',
+                data: { timestamp: Date.now() }
+            };
+            
+            try {
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pingData)
+                });
+                const result = await response.json();
+                results.innerHTML += `<p>Ping результат: ${JSON.stringify(result)}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>Ошибка ping: ${error.message}</p>`;
+            }
+        }
+        
+        async function testSignals() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Тест Signals:</h2>';
+            
+            try {
+                // Проверяем сигналы для test_user_2
+                const checkUrl2 = `${SIGNALING_SERVER}?action=signals&userId=test_user_2&since=0`;
+                const response2 = await fetch(checkUrl2);
+                const data2 = await response2.json();
+                results.innerHTML += `<p>Сигналы для test_user_2: ${JSON.stringify(data2)}</p>`;
+                
+                // Проверяем сигналы для test_user_1
+                const checkUrl1 = `${SIGNALING_SERVER}?action=signals&userId=test_user_1&since=0`;
+                const response1 = await fetch(checkUrl1);
+                const data1 = await response1.json();
+                results.innerHTML += `<p>Сигналы для test_user_1: ${JSON.stringify(data1)}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p>Ошибка проверки: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -331,7 +331,9 @@
                 userInfo.style.display = 'block';
                 headerUserInfo.style.display = 'flex';
                 currentUserId.textContent = currentUser.id;
-                userAvatar.textContent = currentUser.id.charAt(0).toUpperCase();
+                
+                // Загружаем аватар из БД
+                loadUserAvatar();
                 
                 // Обновляем статус
                 userStatus.textContent = getStatusText();
@@ -5093,6 +5095,36 @@
             `).join('');
             
             sentRequestsList.innerHTML = sentRequestsHtml;
+        }
+        
+        // Функция для загрузки аватара пользователя
+        function loadUserAvatar() {
+            const userData = localStorage.getItem('userData');
+            if (!userData) return;
+
+            try {
+                const data = JSON.parse(userData);
+                const userId = data.userId;
+                
+                if (!userId) return;
+
+                // Загружаем данные пользователя из БД
+                fetch(`avtr/api/get_user_data.php?user_id=${userId}`)
+                    .then(response => response.json())
+                    .then(result => {
+                        const userAvatar = document.getElementById('userAvatar');
+                        if (result.success && result.user.avatar_path) {
+                            userAvatar.innerHTML = `<img src="${result.user.avatar_path}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                        } else {
+                            userAvatar.innerHTML = '<i class="fas fa-user-circle"></i>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки аватара:', error);
+                    });
+            } catch (error) {
+                console.error('Ошибка парсинга userData:', error);
+            }
         }
         
         // Принятие запроса в друзья

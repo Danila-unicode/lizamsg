@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест контактов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .log-entry.info {
+            color: #3498db;
+        }
+        .log-entry.success {
+            color: #2ecc71;
+        }
+        .log-entry.error {
+            color: #e74c3c;
+        }
+        .log-entry.warning {
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🧪 Тест приложения контактов</h1>
+        <p>Простая версия для проверки работы кнопок</p>
+    </div>
+
+    <div class="card">
+        <h2>👤 Настройка пользователя</h2>
+        <input type="text" id="userId" placeholder="Введите ваш ID" value="user1" style="padding: 10px; width: 200px; margin-right: 10px;">
+        <button class="btn btn-primary" onclick="initApp()">Инициализировать</button>
+        <div class="status disconnected" id="connectionStatus">Статус: Отключен</div>
+    </div>
+
+    <div class="card">
+        <h2>🔍 Поиск пользователей</h2>
+        <input type="tel" id="searchPhone" placeholder="Введите номер телефона" style="padding: 10px; width: 200px; margin-right: 10px;">
+        <button class="btn btn-success" onclick="searchUser()">Найти</button>
+        <div id="searchResults"></div>
+    </div>
+
+    <div class="card">
+        <h2>👥 Контакты</h2>
+        <button class="btn btn-primary" onclick="loadContacts()">Загрузить контакты</button>
+        <div id="contactsList"></div>
+    </div>
+
+    <div class="card">
+        <h2>📞 Звонки</h2>
+        <button class="btn btn-success" onclick="startCall()" id="startCallBtn" disabled>Позвонить</button>
+        <button class="btn btn-danger" onclick="endCall()" id="endCallBtn" disabled>Завершить</button>
+    </div>
+
+    <div class="card">
+        <h2>📋 Лог событий</h2>
+        <div class="log" id="log">
+            <div class="log-entry info">[Система] Тест готов к работе</div>
+        </div>
+    </div>
+
+    <script>
+        // Переменные
+        let currentUserId = null;
+        let isInitialized = false;
+
+        // Логирование
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Обновление статуса
+        function updateStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = `Статус: ${status === 'connected' ? 'Подключен' : 'Отключен'}`;
+        }
+
+        // Инициализация приложения
+        function initApp() {
+            try {
+                const userId = document.getElementById('userId').value;
+                
+                if (!userId) {
+                    log('Введите ID пользователя', 'error');
+                    return;
+                }
+
+                log('Инициализация приложения...', 'info');
+                updateStatus('connected');
+
+                currentUserId = userId;
+                isInitialized = true;
+                
+                document.getElementById('startCallBtn').disabled = false;
+                
+                log('Приложение инициализировано успешно!', 'success');
+                
+            } catch (error) {
+                log('Ошибка инициализации: ' + error.message, 'error');
+                updateStatus('disconnected');
+            }
+        }
+
+        // Поиск пользователя
+        function searchUser() {
+            const phone = document.getElementById('searchPhone').value;
+            if (!phone) {
+                log('Введите номер телефона для поиска', 'error');
+                return;
+            }
+
+            log(`Поиск пользователя с номером: ${phone}`, 'info');
+            
+            // Имитация поиска
+            setTimeout(() => {
+                const resultsContainer = document.getElementById('searchResults');
+                resultsContainer.innerHTML = `
+                    <div style="margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 5px;">
+                        <strong>Пользователь найден:</strong> ${phone}<br>
+                        <button class="btn btn-success" onclick="sendContactRequest('${phone}')" style="margin-top: 5px;">Добавить в контакты</button>
+                    </div>
+                `;
+                log('Пользователь найден', 'success');
+            }, 1000);
+        }
+
+        // Отправка запроса на контакт
+        function sendContactRequest(phone) {
+            log(`Отправка запроса на контакт: ${phone}`, 'info');
+            
+            // Имитация отправки
+            setTimeout(() => {
+                log('Запрос на контакт отправлен', 'success');
+                document.getElementById('searchResults').innerHTML = '<div style="margin-top: 10px; padding: 10px; background: #d4edda; border-radius: 5px; color: #155724;">Запрос отправлен!</div>';
+            }, 500);
+        }
+
+        // Загрузка контактов
+        function loadContacts() {
+            log('Загрузка контактов...', 'info');
+            
+            // Имитация загрузки
+            setTimeout(() => {
+                const contactsList = document.getElementById('contactsList');
+                contactsList.innerHTML = `
+                    <div style="margin-top: 10px;">
+                        <div style="padding: 10px; background: #e9ecef; border-radius: 5px; margin: 5px 0;">
+                            <strong>+7(999)123-45-67</strong><br>
+                            <button class="btn btn-success" onclick="callContact('+79991234567')" style="margin-top: 5px;">Позвонить</button>
+                        </div>
+                        <div style="padding: 10px; background: #e9ecef; border-radius: 5px; margin: 5px 0;">
+                            <strong>+7(888)765-43-21</strong><br>
+                            <button class="btn btn-success" onclick="callContact('+78887654321')" style="margin-top: 5px;">Позвонить</button>
+                        </div>
+                    </div>
+                `;
+                log('Контакты загружены', 'success');
+            }, 1000);
+        }
+
+        // Звонок контакту
+        function callContact(phone) {
+            if (!isInitialized) {
+                log('Сначала инициализируйте приложение', 'warning');
+                return;
+            }
+
+            log(`Звонок контакту: ${phone}`, 'info');
+            
+            document.getElementById('startCallBtn').disabled = true;
+            document.getElementById('endCallBtn').disabled = false;
+            
+            log('Звонок начат', 'success');
+        }
+
+        // Завершить звонок
+        function endCall() {
+            log('Завершаем звонок...', 'info');
+            
+            document.getElementById('startCallBtn').disabled = false;
+            document.getElementById('endCallBtn').disabled = true;
+            
+            log('Звонок завершен', 'success');
+        }
+
+        // Проверка поддержки WebRTC
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            log('WebRTC не поддерживается в этом браузере', 'error');
+        } else {
+            log('WebRTC поддерживается', 'success');
+        }
+
+        log('Тест готов к работе', 'success');
+    </script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простой Ping/Pong + Offer/Answer тест</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .user-section { border: 2px solid #ccc; padding: 20px; margin: 10px 0; border-radius: 10px; }
+        .user1 { border-color: #2196F3; background: #f0f8ff; }
+        .user2 { border-color: #4CAF50; background: #f0fff0; }
+        .log { background: #000; color: #0f0; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .ping-btn { background: #FF9800; color: white; }
+        .signaling-btn { background: #2196F3; color: white; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #FF9800; }
+        .info { color: #2196F3; }
+        video { width: 200px; height: 150px; border: 1px solid #ccc; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🔗 Простой Ping/Pong + Offer/Answer тест</h1>
+    <p>Тестируем только ping/pong и обмен offer/answer без WebRTC</p>
+
+    <div class="user-section user1">
+        <h2>👤 User 1</h2>
+        <div>
+            <button onclick="pingUser1()" class="ping-btn" id="pingBtn1">📡 Ping User 2</button>
+            <button onclick="testOffer1()" class="signaling-btn" id="offerBtn1" disabled>📤 Тест Offer</button>
+        </div>
+        <div>
+            <video id="localVideo1" autoplay muted></video>
+            <video id="remoteVideo1" autoplay></video>
+        </div>
+        <div class="log" id="log1"></div>
+    </div>
+
+    <div class="user-section user2">
+        <h2>👤 User 2</h2>
+        <div>
+            <button onclick="pingUser2()" class="ping-btn" id="pingBtn2">📡 Ping User 1</button>
+            <button onclick="testAnswer2()" class="signaling-btn" id="answerBtn2" disabled>📥 Тест Answer</button>
+        </div>
+        <div>
+            <video id="localVideo2" autoplay muted></video>
+            <video id="remoteVideo2" autoplay></video>
+        </div>
+        <div class="log" id="log2"></div>
+    </div>
+
+    <script>
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+        
+        // Пользователи
+        const user1 = {
+            id: 'user1',
+            state: 'idle',
+            targetUser: null,
+            lastSignalTime: Date.now(),
+            log: (message, type = 'info') => {
+                const timestamp = new Date().toLocaleTimeString();
+                const logElement = document.getElementById('log1');
+                const colorClass = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+                logElement.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        };
+
+        const user2 = {
+            id: 'user2',
+            state: 'idle',
+            targetUser: null,
+            lastSignalTime: Date.now(),
+            log: (message, type = 'info') => {
+                const timestamp = new Date().toLocaleTimeString();
+                const logElement = document.getElementById('log2');
+                const colorClass = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+                logElement.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        };
+
+        // Инициализация
+        async function init() {
+            user1.log('🚀 Запуск User 1', 'info');
+            user2.log('🚀 Запуск User 2', 'info');
+            
+            // Получаем медиа потоки
+            try {
+                user1.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                user2.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                
+                document.getElementById('localVideo1').srcObject = user1.localStream;
+                document.getElementById('localVideo2').srcObject = user2.localStream;
+                
+                user1.log('✅ Медиа поток получен', 'success');
+                user2.log('✅ Медиа поток получен', 'success');
+            } catch (error) {
+                user1.log(`❌ Ошибка медиа: ${error.message}`, 'error');
+                user2.log(`❌ Ошибка медиа: ${error.message}`, 'error');
+            }
+
+            // Запускаем проверку сигналов
+            setInterval(() => checkSignals(user1), 2000);
+            setInterval(() => checkSignals(user2), 2000);
+        }
+
+        // Ping функции
+        async function pingUser1() {
+            await sendPing(user1, user2);
+        }
+
+        async function pingUser2() {
+            await sendPing(user2, user1);
+        }
+
+        // Отправка ping
+        async function sendPing(caller, target) {
+            if (caller.state !== 'idle') {
+                caller.log('⚠️ Уже в процессе соединения', 'warning');
+                return;
+            }
+
+            try {
+                caller.log(`📤 Отправка ping к ${target.id}`, 'warning');
+                caller.state = 'connecting';
+                caller.targetUser = target.id;
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: caller.id,
+                        to: target.id,
+                        type: 'ping',
+                        data: { test: true }
+                    })
+                });
+
+                const result = await response.json();
+                caller.log(`📡 Ответ: ${JSON.stringify(result)}`, 'info');
+                
+                if (result.success) {
+                    caller.log(`✅ ping отправлен успешно`, 'success');
+                } else {
+                    caller.log(`❌ Ошибка отправки: ${result.error}`, 'error');
+                    caller.state = 'idle';
+                    caller.targetUser = null;
+                }
+            } catch (error) {
+                caller.log(`❌ Ошибка: ${error.message}`, 'error');
+                caller.state = 'idle';
+                caller.targetUser = null;
+            }
+        }
+
+        // Проверка сигналов
+        async function checkSignals(user) {
+            try {
+                const response = await fetch(`${SIGNALING_SERVER}?action=signals&userId=${user.id}&since=${user.lastSignalTime}`);
+                const result = await response.json();
+                
+                if (result.success && result.signals.length > 0) {
+                    user.log(`📨 Получено ${result.signals.length} сигналов`, 'info');
+                    
+                    result.signals.forEach(signal => {
+                        user.lastSignalTime = signal.timestamp;
+                        handleSignal(user, signal);
+                    });
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка проверки сигналов: ${error.message}`, 'error');
+            }
+        }
+
+        // Обработка сигналов
+        function handleSignal(user, signal) {
+            user.log(`📨 ${signal.type} от ${signal.from}`, 'info');
+
+            if (signal.type === 'ping') {
+                handlePing(user, signal);
+            } else if (signal.type === 'pong') {
+                handlePong(user, signal);
+            } else if (signal.type === 'offer') {
+                handleOffer(user, signal);
+            } else if (signal.type === 'answer') {
+                handleAnswer(user, signal);
+            }
+        }
+
+        // Обработка ping
+        async function handlePing(user, signal) {
+            if (user.state !== 'idle') {
+                user.log(`⚠️ Игнорируем ping - состояние: ${user.state}`, 'warning');
+                return;
+            }
+
+            try {
+                user.log(`🏓 Получен ping от ${signal.from} - отправляем pong`, 'warning');
+                user.state = 'connecting';
+                user.targetUser = signal.from;
+
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: user.id,
+                        to: signal.from,
+                        type: 'pong',
+                        data: { received: true }
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    user.log(`✅ pong отправлен успешно`, 'success');
+                    user.state = 'connected';
+                    user.log(`🔗 P2P соединение готово!`, 'success');
+                    updateButtons(user);
+                } else {
+                    user.log(`❌ Ошибка отправки pong: ${result.error}`, 'error');
+                    user.state = 'idle';
+                    user.targetUser = null;
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка: ${error.message}`, 'error');
+                user.state = 'idle';
+                user.targetUser = null;
+            }
+        }
+
+        // Обработка pong
+        function handlePong(user, signal) {
+            if (user.state === 'connecting' && user.targetUser === signal.from) {
+                user.log(`🏓 Получен pong от ${signal.from} - связь установлена!`, 'success');
+                user.state = 'connected';
+                user.log(`🔗 P2P соединение готово!`, 'success');
+                updateButtons(user);
+            } else {
+                user.log(`⚠️ Игнорируем pong от ${signal.from} - состояние: ${user.state}`, 'warning');
+            }
+        }
+
+        // Обработка offer
+        function handleOffer(user, signal) {
+            if (user.state !== 'connected') {
+                user.log(`⚠️ Игнорируем offer - состояние: ${user.state}`, 'warning');
+                return;
+            }
+
+            user.log(`📥 Получен offer от ${signal.from}`, 'warning');
+            user.log(`📥 Offer данные: type=${signal.data.type}, sdp длина=${signal.data.sdp ? signal.data.sdp.length : 'undefined'}`, 'info');
+            user.log(`📥 Состояние пользователя: ${user.state}`, 'info');
+            
+            // Включаем кнопку answer для User 2
+            if (user.id === 'user2') {
+                document.getElementById('answerBtn2').disabled = false;
+                user.log(`💡 Теперь можно нажать "Тест Answer"`, 'info');
+            }
+        }
+
+        // Обработка answer
+        function handleAnswer(user, signal) {
+            if (user.state !== 'connected') {
+                user.log(`⚠️ Игнорируем answer - состояние: ${user.state}`, 'warning');
+                return;
+            }
+
+            user.log(`📥 Получен answer от ${signal.from}`, 'warning');
+            user.log(`📥 Answer данные: type=${signal.data.type}, sdp длина=${signal.data.sdp ? signal.data.sdp.length : 'undefined'}`, 'info');
+            user.log(`✅ Offer/Answer обмен завершен!`, 'success');
+        }
+
+        // Тест offer
+        async function testOffer1() {
+            if (user1.state !== 'connected') {
+                user1.log('⚠️ Нет соединения для отправки offer', 'warning');
+                return;
+            }
+
+            try {
+                user1.log(`📤 Отправка тестового offer к user2`, 'warning');
+                
+                const testOffer = {
+                    type: 'offer',
+                    sdp: 'v=0\r\no=- 1234567890 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:test\r\na=ice-pwd:test\r\na=fingerprint:sha-256 test\r\na=setup:actpass\r\na=mid:0\r\na=sendrecv\r\na=rtpmap:111 opus/48000/2\r\n'
+                };
+
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: user1.id,
+                        to: 'user2',
+                        type: 'offer',
+                        data: testOffer
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    user1.log(`✅ Тестовый offer отправлен успешно`, 'success');
+                } else {
+                    user1.log(`❌ Ошибка отправки offer: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                user1.log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Тест answer
+        async function testAnswer2() {
+            if (user2.state !== 'connected') {
+                user2.log('⚠️ Нет соединения для отправки answer', 'warning');
+                return;
+            }
+
+            try {
+                user2.log(`📤 Отправка тестового answer к user1`, 'warning');
+                
+                const testAnswer = {
+                    type: 'answer',
+                    sdp: 'v=0\r\no=- 1234567890 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:test\r\na=ice-pwd:test\r\na=fingerprint:sha-256 test\r\na=setup:active\r\na=mid:0\r\na=sendrecv\r\na=rtpmap:111 opus/48000/2\r\n'
+                };
+
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: user2.id,
+                        to: 'user1',
+                        type: 'answer',
+                        data: testAnswer
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    user2.log(`✅ Тестовый answer отправлен успешно`, 'success');
+                } else {
+                    user2.log(`❌ Ошибка отправки answer: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                user2.log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Обновление кнопок
+        function updateButtons(user) {
+            if (user.id === 'user1') {
+                document.getElementById('pingBtn1').disabled = true;
+                document.getElementById('offerBtn1').disabled = false;
+            } else {
+                document.getElementById('pingBtn2').disabled = true;
+                // answerBtn2 включается при получении offer
+            }
+        }
+
+        // Запуск
+        init();
+    </script>
+</body>
+</html>

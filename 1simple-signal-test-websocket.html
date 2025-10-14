@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простой тест сигналов WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .user-section { border: 1px solid #ccc; padding: 20px; margin: 10px 0; }
+        .log { background: #f5f5f5; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        button { padding: 10px 20px; margin: 5px; }
+        input { padding: 5px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Простой тест обмена сигналами WebSocket</h1>
+        <p><strong>Инструкция:</strong> Откройте эту страницу в двух вкладках браузера для тестирования между двумя пользователями.</p>
+        <button onclick="window.open('register.php', '_blank')" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 10px 0; border: none; border-radius: 5px; cursor: pointer;">Создать аккаунт</button>
+        
+        <div class="user-section">
+            <h2>User 1</h2>
+            <input type="text" id="user1Id" value="" placeholder="Введите ваш логин">
+            <input type="password" id="user1Password" value="" placeholder="Введите пароль" style="display: none;">
+            <input type="text" id="user1Target" value="" placeholder="Введите логин собеседника">
+            <button onclick="showPasswordField('user1')">Войти как User 1</button>
+            <button onclick="sendPingToTarget('user1')" style="display: none;">Отправить ping к целевому пользователю</button>
+            <button onclick="resetUser1()" style="background: #ff9800; color: white; display: none;">🔄 Сбросить состояние</button>
+            
+        <div style="margin: 10px 0;">
+            <button onclick="startCall('user1')" id="startCallBtn1" disabled style="background: #4CAF50; color: white; display: none;">📞 Позвонить</button>
+        <button onclick="resetBothUsers()" id="resetBtn1" style="background: #FF9800; color: white; display: none;">🔄 Сбросить состояние</button>
+            <button onclick="testOffer1()" id="offerBtn1" disabled style="background: #2196F3; color: white; display: none;">📞 Начать звонок</button>
+            <button onclick="startP2PCall()" id="p2pBtn1" disabled style="background: #9C27B0; color: white; display: none;">📞 Связь</button>
+            <button onclick="disconnectCall()" id="disconnectBtn1" disabled style="background: #f44336; color: white; display: none;">🔌 Разорвать соединение</button>
+        </div>
+            
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+                <video id="localVideo1" autoplay muted style="width: 200px; height: 150px; border: 2px solid #4CAF50; background: #000;"></video>
+                <video id="remoteVideo1" autoplay style="width: 200px; height: 150px; border: 2px solid #2196F3; background: #000;"></video>
+            </div>
+            
+            <div id="log1" class="log"></div>
+        </div>
+        
+        <div class="user-section">
+            <h2>User 2</h2>
+            <input type="text" id="user2Id" value="" placeholder="Введите ваш логин">
+            <input type="password" id="user2Password" value="" placeholder="Введите пароль" style="display: none;">
+            <input type="text" id="user2Target" value="" placeholder="Введите логин собеседника">
+            <button onclick="showPasswordField('user2')">Войти как User 2</button>
+            <button onclick="sendPingToTarget('user2')" style="display: none;">Отправить ping к целевому пользователю</button>
+            <button onclick="resetUser2()" style="background: #ff9800; color: white; display: none;">🔄 Сбросить состояние</button>
+            
+        <div style="margin: 10px 0;">
+            <button onclick="startCall('user2')" id="startCallBtn2" disabled style="background: #4CAF50; color: white; display: none;">📞 Позвонить</button>
+            <button onclick="testOffer2()" id="offerBtn2" disabled style="background: #2196F3; color: white; display: none;">📤 Начать звонок</button>
+            <button onclick="startP2PCall()" id="p2pBtn2" disabled style="background: #9C27B0; color: white; display: none;">📞 Связь</button>
+            <button onclick="disconnectCall()" id="disconnectBtn2" disabled style="background: #f44336; color: white; display: none;">🔌 Разорвать соединение</button>
+            <button onclick="testAnswer2()" id="answerBtn2" disabled style="background: #4CAF50; color: white; display: none;">📥 Тест Answer (ручной)</button>
+            <div id="autoAnswerInfo" style="display: none; color: #4CAF50; font-weight: bold;">🤖 Answer отправляется автоматически при получении offer</div>
+        </div>
+            
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+                <video id="localVideo2" autoplay muted style="width: 200px; height: 150px; border: 2px solid #4CAF50; background: #000;"></video>
+                <video id="remoteVideo2" autoplay style="width: 200px; height: 150px; border: 2px solid #2196F3; background: #000;"></video>
+            </div>
+            
+            <div id="log2" class="log"></div>
+        </div>
+        
+        <div class="user-section">
+            <h2>Копирование логов</h2>
+            <button onclick="copyAllLogs()" style="background: #4CAF50; color: white; font-weight: bold;">📋 Копировать все логи</button>
+            <p>Эта кнопка скопирует логи обоих пользователей для отправки разработчику</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('Script started');
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+        
+        // WebRTC конфигурация
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { 
+                    urls: 'turn:89.169.141.202:3478',
+                    username: 'lizaapp',
+                    credential: 'lizaapp123'
+                },
+                { 
+                    urls: 'turns:62.84.126.200:3479',
+                    username: 'lizaapp',
+                    credential: 'lizaapp123'
+                }
+            ]
+        };
+        
+        // Глобальный инициатор соединения
+        let globalInitiator = null;
+        let isResetting = false; // Флаг для предотвращения двойного сброса
+        
+        let user1 = {
+            id: 'user1',
+            lastSignalId: 0,
+            interval: null,
+            state: 'idle', // idle, connecting, connected, calling
+            targetUser: null,
+            peerConnection: null,
+            localStream: null,
+            log: (msg, type = 'info') => {
+                const logEl = document.getElementById('log1');
+                const time = new Date().toLocaleTimeString();
+                const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+                logEl.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        };
+        
+        let user2 = {
+            id: 'user2',
+            lastSignalId: 0,
+            interval: null,
+            state: 'idle',
+            targetUser: null,
+            peerConnection: null,
+            localStream: null,
+            log: (msg, type = 'info') => {
+                const logEl = document.getElementById('log2');
+                const time = new Date().toLocaleTimeString();
+                const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+                logEl.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        };
+        
+        // ===== УНИВЕРСАЛЬНЫЕ ФУНКЦИИ =====
+        console.log('Defining universal user functions');
+        
+        // Функция для показа поля пароля
+        function showPasswordField(userNum) {
+            const passwordField = document.getElementById(userNum + 'Password');
+            const loginButton = event.target;
+            
+            if (passwordField.style.display === 'none') {
+                passwordField.style.display = 'block';
+                loginButton.textContent = 'Войти';
+                loginButton.onclick = () => startUser(userNum === 'user1' ? user1 : user2, userNum + 'Id', 'localVideo' + userNum.slice(-1));
+            }
+        }
+        
+        // Универсальная функция для запуска пользователя
+        async function startUser(user, userId, videoElementId) {
+            const username = document.getElementById(userId).value;
+            const password = document.getElementById(userId.replace('Id', 'Password')).value;
+            
+            if (!username) {
+                user.log(`❌ Введите логин`, 'error');
+                return;
+            }
+            
+            if (!password) {
+                user.log(`❌ Введите пароль`, 'error');
+                return;
+            }
+            
+            // Авторизация пользователя
+            user.log(`🔐 Авторизация пользователя ${username}...`, 'info');
+            
+            try {
+                const response = await fetch('https://lizaapp.wg01.ru/api/login.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    user.id = username;
+                    user.sessionToken = data.sessionToken;
+                    user.log(`✅ Авторизация успешна`, 'success');
+                } else {
+                    user.log(`❌ Ошибка авторизации: ${data.error}`, 'error');
+                    return;
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка соединения с сервером`, 'error');
+                return;
+            }
+            
+            user.lastSignalId = Math.floor(Date.now() / 1000) - 60; // Получаем сигналы за последнюю минуту
+            user.state = 'idle';
+            user.targetUser = null;
+            user.log(`🚀 Пользователь ${user.id} готов к звонкам`, 'success');
+            user.log(`⏰ Игнорируем сигналы старше: ${user.lastSignalId}`, 'info');
+            user.log(`📊 Состояние: ${user.state}`, 'info');
+            
+            try {
+                // Получаем медиа потоки
+                user.localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                document.getElementById(videoElementId).srcObject = user.localStream;
+                user.log('✅ Медиа потоки получены', 'success');
+                
+                // Запускаем polling для получения сигналов
+                if (user.interval) clearInterval(user.interval);
+                user.interval = setInterval(() => checkSignals(user), 3000); // Проверяем каждые 3 секунды
+                checkSignals(user);
+                
+                // Обновляем кнопки только для инициализированного пользователя
+                updateCallButtons(user);
+                
+            } catch (error) {
+                user.log(`❌ Ошибка получения медиа: ${error.message}`, 'error');
+            }
+        }
+        
+        // ===== USER 1 ФУНКЦИИ =====
+        async function startUser1() {
+            await startUser(user1, 'user1Id', 'localVideo1');
+        }
+        
+        // Универсальная функция для отправки ping
+        async function sendPing(caller, target) {
+            if (caller.state !== 'idle') {
+                caller.log(`⚠️ Нельзя отправить ping - состояние: ${caller.state}`, 'warning');
+                return;
+            }
+            
+            caller.state = 'connecting';
+            caller.targetUser = target.id;
+            globalInitiator = caller.id; // caller становится глобальным инициатором
+            caller.log(`📊 Состояние изменено на: ${caller.state}`, 'info');
+            caller.log(`🔍 Установлен globalInitiator: ${globalInitiator}`, 'info');
+            caller.log(`📤 Отправка ping к ${target.id}`, 'warning');
+            
+            try {
+                const pingData = {
+                    action: 'ping',
+                    from: caller.id,
+                    to: target.id,
+                    data: { timestamp: Date.now() }
+                };
+                caller.log(`📤 Отправляем ping данные: ${JSON.stringify(pingData)}`, 'info');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pingData),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                const result = await response.json();
+                caller.log(`📡 Ответ сервера: ${JSON.stringify(result)}`, 'info');
+                
+                if (result.success) {
+                    caller.log(`✅ Ping отправлен успешно`, 'success');
+                    // Немедленно проверяем сигналы для быстрого получения pong
+                    setTimeout(() => checkSignals(caller), 100);
+                    // НЕ показываем кнопку offer здесь - она появится после получения pong
+                } else {
+                    caller.log(`❌ Ошибка отправки ping: ${result.message}`, 'error');
+                    caller.state = 'idle';
+                    caller.targetUser = null;
+                    globalInitiator = null;
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    caller.log(`❌ Таймаут отправки ping (10 сек)`, 'error');
+                } else {
+                    caller.log(`❌ Ошибка отправки ping: ${error.message}`, 'error');
+                }
+                caller.state = 'idle';
+                caller.targetUser = null;
+                globalInitiator = null;
+            }
+        }
+        
+        // Универсальная функция для отправки ping к целевому пользователю
+        async function sendPingToTarget(userId) {
+            const user = userId === 'user1' ? user1 : user2;
+            const targetId = document.getElementById(`${userId}Target`).value;
+            
+            if (!targetId) {
+                user.log('❌ Не указан целевой пользователь', 'error');
+                return;
+            }
+            
+            // Создаем объект целевого пользователя
+            const target = { id: targetId };
+            
+            await sendPing(user, target);
+        }
+        
+        // Функции для конкретных пользователей (для совместимости с кнопками)
+        async function sendPing1() {
+            await sendPing(user1, user2);
+        }
+        
+        async function sendPing2() {
+            await sendPing(user2, user1);
+        }
+        
+        // Универсальная функция для создания WebRTC соединения
+        async function startWebRTCCall(caller, target) {
+            if (caller.state !== 'connected') {
+                caller.log(`⚠️ Нельзя отправить offer - состояние: ${caller.state}`, 'warning');
+                return;
+            }
+            
+            caller.log('🔧 Создание Peer Connection...', 'info');
+            
+            try {
+                // Создаем Peer Connection
+                caller.peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Добавляем локальный поток
+                caller.localStream.getTracks().forEach(track => {
+                    caller.peerConnection.addTrack(track, caller.localStream);
+                });
+                
+                // Обработчики событий
+                caller.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        caller.log('🧊 ICE кандидат найден', 'info');
+                        sendSignal(caller, target.id, 'ice-candidate', event.candidate);
+                    }
+                };
+                
+                caller.peerConnection.ontrack = (event) => {
+                    caller.log('📹 Получен удаленный поток', 'success');
+                    const videoId = caller.id === 'user1' ? 'remoteVideo1' : 'remoteVideo2';
+                    document.getElementById(videoId).srcObject = event.streams[0];
+                };
+                
+                caller.peerConnection.onconnectionstatechange = () => {
+                    caller.log(`🔗 Состояние соединения: ${caller.peerConnection.connectionState}`, 'info');
+                    if (caller.peerConnection.connectionState === 'connected') {
+                        caller.log('✅ P2P соединение установлено!', 'success');
+                    } else if (caller.peerConnection.connectionState === 'failed') {
+                        caller.log('❌ P2P соединение не удалось', 'error');
+                    } else if (caller.peerConnection.connectionState === 'disconnected') {
+                        if (!isResetting) {
+                            caller.log('🔌 P2P соединение разорвано - сбрасываем в исходное состояние через onconnectionstatechange', 'warning');
+                            isResetting = true;
+                            // Автоматически сбрасываем пользователя при разрыве соединения
+                            resetUser1();
+                            resetUser2();
+                            globalInitiator = null;
+                            updateAllCallButtons();
+                            isResetting = false;
+                            caller.log('✅ Сброс завершен через onconnectionstatechange', 'success');
+                            
+                            // Автоматически перезапускаем пользователей
+                            user1.log('🚀 Автоматический перезапуск user1 через onconnectionstatechange...', 'info');
+                            user2.log('🚀 Автоматический перезапуск user2 через onconnectionstatechange...', 'info');
+                            
+                            // Небольшая задержка перед перезапуском
+                            setTimeout(() => {
+                                startUser(user1, 'user1Id', 'localVideo1');
+                                startUser(user2, 'user2Id', 'localVideo2');
+                            }, 1000);
+                        } else {
+                            caller.log('🔌 P2P соединение разорвано - сброс уже выполнен через disconnectCall', 'info');
+                        }
+                    }
+                };
+                
+                // Создаем offer
+                const offer = await caller.peerConnection.createOffer();
+                await caller.peerConnection.setLocalDescription(offer);
+                
+                caller.log('📤 Offer создан, отправка...', 'info');
+                
+                // Отправляем offer
+                await sendSignal(caller, target.id, 'offer', offer);
+                
+                caller.state = 'calling';
+                caller.log(`📊 Состояние изменено на: ${caller.state}`, 'info');
+                updateAllCallButtons();
+                caller.log('✅ Offer отправлен, ожидание answer', 'success');
+                
+                // Запускаем polling для WebRTC сигналов (answer)
+                caller.interval = setInterval(() => checkWebRTCSignals(caller), 3000);
+                caller.log(`🔄 Запущен polling для WebRTC сигналов (answer)`, 'info');
+                
+            } catch (error) {
+                caller.log(`❌ Ошибка создания offer: ${error.message}`, 'error');
+                caller.state = 'idle';
+            }
+        }
+        
+        // Функции для конкретных пользователей (для совместимости с кнопками)
+        async function testOffer1() {
+            const targetId = document.getElementById('user1Target').value;
+            if (!targetId) {
+                user1.log('❌ Не указан целевой пользователь', 'error');
+                return;
+            }
+            const target = { id: targetId };
+            await startWebRTCCall(user1, target);
+        }
+        
+        async function testOffer2() {
+            const targetId = document.getElementById('user2Target').value;
+            if (!targetId) {
+                user2.log('❌ Не указан целевой пользователь', 'error');
+                return;
+            }
+            const target = { id: targetId };
+            await startWebRTCCall(user2, target);
+        }
+        
+        
+        // ===== USER 2 ФУНКЦИИ =====
+        async function startUser2() {
+            await startUser(user2, 'user2Id', 'localVideo2');
+        }
+        
+        
+        async function testAnswer2() {
+            if (user2.state !== 'connecting') {
+                user2.log(`⚠️ Нельзя отправить answer - состояние: ${user2.state}`, 'warning');
+                return;
+            }
+            
+            user2.log('🔧 Создание Peer Connection...', 'info');
+            
+            try {
+                // Создаем Peer Connection
+                user2.peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Добавляем локальный поток
+                user2.localStream.getTracks().forEach(track => {
+                    user2.peerConnection.addTrack(track, user2.localStream);
+                });
+                
+                // Обработчики событий
+                user2.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        user2.log('🧊 ICE кандидат найден', 'info');
+                        sendSignal(user2, user2.targetUser, 'ice-candidate', event.candidate);
+                    }
+                };
+                
+                user2.peerConnection.ontrack = (event) => {
+                    user2.log('📹 Получен удаленный поток', 'success');
+                    document.getElementById('remoteVideo2').srcObject = event.streams[0];
+                };
+                
+                // Создаем answer
+                const answer = await user2.peerConnection.createAnswer();
+                await user2.peerConnection.setLocalDescription(answer);
+                
+                user2.log('📥 Answer создан, отправка...', 'info');
+                
+                // Отправляем answer
+                await sendSignal(user2, user2.targetUser, 'answer', answer);
+                
+                user2.state = 'calling';
+                user2.log('✅ Answer отправлен, соединение установлено', 'success');
+                
+            } catch (error) {
+                user2.log(`❌ Ошибка создания answer: ${error.message}`, 'error');
+                user2.state = 'idle';
+            }
+        }
+        
+        // ===== ОБЩИЕ ФУНКЦИИ =====
+        
+        // Функция для полного инициирования вызова (ping -> pong -> offer -> answer -> P2P)
+        async function startCall(userId) {
+            const user = userId === 'user1' ? user1 : user2;
+            const targetId = document.getElementById(`${userId}Target`).value;
+            
+            if (!targetId) {
+                user.log('❌ Не указан целевой пользователь', 'error');
+                return;
+            }
+            
+            // Проверяем, что пользователь в состоянии idle
+            if (user.state !== 'idle') {
+                user.log(`❌ Нельзя начать вызов - состояние: ${user.state}. Сначала сбросьте состояние.`, 'error');
+                return;
+            }
+            
+            // Проверяем, что целевой пользователь тоже в состоянии idle
+            const targetUser = targetId === user1.id ? user1 : (targetId === user2.id ? user2 : null);
+            if (targetUser && targetUser.state !== 'idle') {
+                user.log(`❌ Нельзя начать вызов - целевой пользователь ${targetId} в состоянии: ${targetUser.state}. Сначала сбросьте состояние.`, 'error');
+                return;
+            }
+            
+            // Проверяем, что целевой пользователь запущен (если это локальный пользователь)
+            if (targetUser && !targetUser.id) {
+                user.log(`❌ Нельзя начать вызов - целевой пользователь ${targetId} не запущен. Сначала запустите его.`, 'error');
+                return;
+            }
+            
+            user.log(`📞 Начинаем полный вызов к ${targetId}`, 'info');
+            
+            try {
+                // Шаг 1: Отправляем ping (как кнопка "Отправить ping к целевому пользователю")
+                user.log(`📤 Шаг 1: Отправляем ping к ${targetId}`, 'info');
+                await sendPingToTarget(userId);
+                
+                // Ждем установления ping-pong соединения
+                user.log(`⏳ Ожидаем pong от ${targetId}...`, 'info');
+                await waitForState(user, 'connected', 10000); // Ждем до 10 секунд
+                
+                // Шаг 2: Отправляем offer (как кнопка "Начать звонок")
+                user.log(`📤 Шаг 2: Отправляем offer к ${targetId}`, 'info');
+                const target = { id: targetId };
+                await startWebRTCCall(user, target);
+                
+                // Ждем получения answer от другого пользователя
+                user.log(`⏳ Ожидаем answer от ${targetId}...`, 'info');
+                await waitForAnswer(user, 10000); // Ждем до 10 секунд
+                
+                // Шаг 3: Активируем P2P соединение (как кнопка "Связь")
+                user.log(`📤 Шаг 3: Активируем P2P соединение`, 'info');
+                await startP2PCall();
+                
+                user.log(`✅ Полный вызов успешно установлен!`, 'success');
+                
+            } catch (error) {
+                user.log(`❌ Ошибка при инициировании вызова: ${error.message}`, 'error');
+            }
+        }
+        
+        // Функция для ожидания определенного состояния пользователя
+        async function waitForState(user, targetState, timeoutMs = 10000) {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                
+                const checkState = () => {
+                    if (user.state === targetState) {
+                        user.log(`✅ Состояние достигнуто: ${targetState}`, 'success');
+                        resolve();
+                    } else if (Date.now() - startTime > timeoutMs) {
+                        user.log(`⏰ Таймаут ожидания состояния ${targetState}`, 'warning');
+                        reject(new Error(`Таймаут ожидания состояния ${targetState}`));
+                    } else {
+                        setTimeout(checkState, 500); // Проверяем каждые 500мс
+                    }
+                };
+                
+                checkState();
+            });
+        }
+        
+        // Функция для ожидания получения answer (WebRTC соединение установлено)
+        async function waitForAnswer(user, timeoutMs = 10000) {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                
+                const checkAnswer = () => {
+                    // Проверяем, что WebRTC соединение установлено (есть remote stream)
+                    const videoId = user.id === user1.id ? 'remoteVideo1' : 'remoteVideo2';
+                    const remoteVideo = document.getElementById(videoId);
+                    
+                    if (remoteVideo && remoteVideo.srcObject && user.state === 'calling') {
+                        user.log(`✅ Answer получен, WebRTC соединение установлено`, 'success');
+                        resolve();
+                    } else if (Date.now() - startTime > timeoutMs) {
+                        user.log(`⏰ Таймаут ожидания answer`, 'warning');
+                        reject(new Error(`Таймаут ожидания answer`));
+                    } else {
+                        setTimeout(checkAnswer, 500); // Проверяем каждые 500мс
+                    }
+                };
+                
+                checkAnswer();
+            });
+        }
+        
+        async function checkWebRTCSignals(user) {
+            // Защита от множественных одновременных запросов
+            if (user.checkingWebRTCSignals) {
+                return;
+            }
+            user.checkingWebRTCSignals = true;
+            
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&userId=${user.id}&since=${user.lastSignalId}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success && data.signals && data.signals.length > 0) {
+                    const newSignals = data.signals.filter(signal => {
+                        const signalTimestamp = signal.timestamp || signal.id;
+                        return signalTimestamp > user.lastSignalId;
+                    });
+                    
+                    if (newSignals.length > 0) {
+                        newSignals.forEach(signal => {
+                            user.lastSignalId = Math.max(user.lastSignalId, signal.timestamp || signal.id);
+                            
+                            if (signal.type === 'offer') {
+                                user.log(`📥 Получен offer от ${signal.from}`, 'warning');
+                                handleOffer(user, signal);
+                            } else if (signal.type === 'answer') {
+                                user.log(`📥 Получен answer от ${signal.from}`, 'warning');
+                                handleAnswer(user, signal);
+                            } else if (signal.type === 'ice-candidate') {
+                                handleIceCandidate(user, signal);
+                            }
+                        });
+                        
+                        // Удаляем обработанные сигналы с сервера
+                        await deleteProcessedSignals(user);
+                    }
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка проверки WebRTC сигналов: ${error.message}`, 'error');
+            } finally {
+                user.checkingWebRTCSignals = false;
+            }
+        }
+        
+        async function deleteProcessedSignals(user) {
+            try {
+                const url = `${SIGNALING_SERVER}?action=delete&userId=${user.id}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    user.log(`🗑️ Обработанные сигналы удалены с сервера`, 'info');
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка удаления сигналов: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkSignals(user) {
+            // Защита от множественных одновременных запросов
+            if (user.checkingSignals) {
+                return;
+            }
+            user.checkingSignals = true;
+            
+            user.log(`🔍 checkSignals для ${user.id}, состояние: ${user.state}`, 'info');
+            
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&userId=${user.id}&since=${user.lastSignalId}`;
+                user.log(`🔍 Запрос: ${url}`, 'info');
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                user.log(`📡 Ответ: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.success && data.signals && data.signals.length > 0) {
+                    user.log(`📨 Получено ${data.signals.length} сигналов`, 'success');
+                    
+                    // Фильтруем только НОВЫЕ сигналы (после запуска пользователя)
+                    const newSignals = data.signals.filter(signal => {
+                        const signalTimestamp = signal.timestamp || signal.id;
+                        const isNew = signalTimestamp > user.lastSignalId;
+                        if (!isNew) {
+                            user.log(`⏰ Игнорируем старый сигнал: ${signal.type} от ${signal.from} (timestamp: ${signalTimestamp} <= ${user.lastSignalId})`, 'warning');
+                        }
+                        return isNew;
+                    });
+                    
+                    if (newSignals.length === 0) {
+                        user.log(`🔍 Все сигналы старые, игнорируем`, 'info');
+                        // Обновляем lastSignalId до максимального значения
+                        const maxTimestamp = Math.max(...data.signals.map(s => s.timestamp || s.id));
+                        user.lastSignalId = Math.max(user.lastSignalId, maxTimestamp);
+                        return;
+                    }
+                    
+                    user.log(`📨 Обрабатываем ${newSignals.length} новых сигналов`, 'success');
+                    
+                    for (const signal of newSignals) {
+                        user.lastSignalId = Math.max(user.lastSignalId, signal.timestamp || signal.id);
+                        user.log(`📨 ${signal.type} от ${signal.from}`, 'success');
+                        
+                        if (signal.type === 'ping') {
+                            if (user.state === 'idle') {
+                                user.log(`🏓 Получен ping от ${signal.from} - отправляем pong`, 'warning');
+                                user.state = 'connecting';
+                                user.targetUser = signal.from;
+                                user.log(`📊 Состояние изменено на: ${user.state}`, 'info');
+                                
+                                // Отправляем pong и ждем завершения
+                                try {
+                                    await sendSignal(user, signal.from, 'pong', { received: true });
+                                    user.log(`✅ Pong отправлен успешно`, 'success');
+                                    
+                                    // Немедленно проверяем сигналы для быстрого получения ответа
+                                    setTimeout(() => checkSignals(user), 100);
+                                } catch (error) {
+                                    user.log(`❌ Ошибка отправки pong: ${error.message}`, 'error');
+                                }
+                                
+                                // Переходим в connected после отправки pong
+                                user.state = 'connected';
+                                user.log(`📊 Состояние изменено на: ${user.state}`, 'success');
+                                user.log(`🔗 P2P соединение готово для WebRTC!`, 'success');
+                                
+                                // Продолжаем использовать checkSignals для получения disconnect сигналов
+                                // user.interval уже работает с checkSignals
+                                user.log(`🔄 Продолжаем polling для получения disconnect сигналов`, 'info');
+                                
+                                updateAllCallButtons();
+                            } else {
+                                user.log(`⚠️ Игнорируем ping от ${signal.from} - состояние: ${user.state}`, 'warning');
+                            }
+                        } else if (signal.type === 'pong') {
+                            if (user.state === 'connecting' && user.targetUser === signal.from) {
+                                user.log(`🏓 Получен pong от ${signal.from} - связь установлена!`, 'success');
+                                user.state = 'connected';
+                                user.log(`📊 Состояние изменено на: ${user.state}`, 'success');
+                                user.log(`🔗 P2P соединение готово для WebRTC!`, 'success');
+                                user.log(`💡 Теперь можно нажать "Начать звонок" для WebRTC`, 'info');
+                                
+                                // Продолжаем использовать checkSignals для получения disconnect сигналов
+                                // user.interval уже работает с checkSignals
+                                user.log(`🔄 Продолжаем polling для получения disconnect сигналов`, 'info');
+                                
+                                updateAllCallButtons();
+                            } else if (user.state === 'connected' && user.targetUser === signal.from) {
+                                user.log(`🏓 Получен pong от ${signal.from} - связь уже установлена`, 'info');
+                            } else {
+                                user.log(`⚠️ Игнорируем pong от ${signal.from} - состояние: ${user.state}, ожидали: ${user.targetUser}`, 'warning');
+                            }
+                        } else if (signal.type === 'offer') {
+                            user.log(`📥 Получен offer от ${signal.from}`, 'warning');
+                            handleOffer(user, signal);
+                        } else if (signal.type === 'answer') {
+                            user.log(`📥 Получен answer от ${signal.from}`, 'warning');
+                            handleAnswer(user, signal);
+                        } else if (signal.type === 'ice-candidate') {
+                            handleIceCandidate(user, signal);
+                        }
+                    }
+                    
+                    // Удаляем обработанные сигналы с сервера
+                    await deleteProcessedSignals(user);
+                } else {
+                    user.log(`🔍 Нет новых сигналов`, 'info');
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка проверки: ${error.message}`, 'error');
+            } finally {
+                user.checkingSignals = false;
+            }
+        }
+        
+        function updateCallButtons(user) {
+            if (user.id === 'user1') {
+                const startCallBtn = document.getElementById('startCallBtn1');
+                const offerBtn = document.getElementById('offerBtn1');
+                const p2pBtn = document.getElementById('p2pBtn1');
+                const disconnectBtn = document.getElementById('disconnectBtn1');
+                
+                // Показываем кнопки в зависимости от состояния
+                if (user.state === 'idle') {
+                    // В состоянии idle показываем кнопку "Позвонить" для всех пользователей
+                    startCallBtn.style.display = 'inline-block';
+                    startCallBtn.disabled = false;
+                    offerBtn.style.display = 'none';
+                    p2pBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'none';
+                } else if (user.state === 'connected') {
+                    // После ping-pong показываем кнопку "Начать звонок" только инициатору
+                    if (globalInitiator === user.id) {
+                        startCallBtn.style.display = 'none';
+                    offerBtn.style.display = 'inline-block';
+                    offerBtn.disabled = false;
+                        p2pBtn.style.display = 'none';
+                        disconnectBtn.style.display = 'none';
+                    } else {
+                        // Не инициатор - скрываем все кнопки
+                        startCallBtn.style.display = 'none';
+                        offerBtn.style.display = 'none';
+                        p2pBtn.style.display = 'none';
+                        disconnectBtn.style.display = 'none';
+                    }
+                } else if (user.state === 'calling') {
+                    // После успешного offer/answer показываем кнопку "Связь" только инициатору
+                    if (globalInitiator === user.id) {
+                        startCallBtn.style.display = 'none';
+                        offerBtn.style.display = 'none';
+                        p2pBtn.style.display = 'inline-block';
+                        p2pBtn.disabled = false;
+                    disconnectBtn.style.display = 'inline-block';
+                    disconnectBtn.disabled = false;
+                } else {
+                        // Не инициатор - показываем только кнопку disconnect
+                        startCallBtn.style.display = 'none';
+                    offerBtn.style.display = 'none';
+                        p2pBtn.style.display = 'none';
+                        disconnectBtn.style.display = 'inline-block';
+                        disconnectBtn.disabled = false;
+                    }
+                } else {
+                    startCallBtn.style.display = 'none';
+                    offerBtn.style.display = 'none';
+                    p2pBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'none';
+                }
+            } else if (user.id === 'user2') {
+                const startCallBtn = document.getElementById('startCallBtn2');
+                const offerBtn = document.getElementById('offerBtn2');
+                const p2pBtn = document.getElementById('p2pBtn2');
+                const disconnectBtn = document.getElementById('disconnectBtn2');
+                const autoAnswerInfo = document.getElementById('autoAnswerInfo');
+                
+                // Показываем кнопки в зависимости от состояния
+                if (user.state === 'idle') {
+                    // В состоянии idle показываем кнопку "Позвонить" для всех пользователей
+                    startCallBtn.style.display = 'inline-block';
+                    startCallBtn.disabled = false;
+                    offerBtn.style.display = 'none';
+                    p2pBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'none';
+                    autoAnswerInfo.style.display = 'none';
+                } else if (user.state === 'connected') {
+                    // После ping-pong показываем кнопку "Начать звонок" только инициатору
+                    if (globalInitiator === user.id) {
+                        startCallBtn.style.display = 'none';
+                    offerBtn.style.display = 'inline-block';
+                    offerBtn.disabled = false;
+                        p2pBtn.style.display = 'none';
+                        disconnectBtn.style.display = 'none';
+                        autoAnswerInfo.style.display = 'none';
+                    } else {
+                        // Не инициатор - скрываем все кнопки, показываем авто-answer info
+                        startCallBtn.style.display = 'none';
+                        offerBtn.style.display = 'none';
+                        p2pBtn.style.display = 'none';
+                        disconnectBtn.style.display = 'none';
+                    autoAnswerInfo.style.display = 'block';
+                    }
+                } else if (user.state === 'calling') {
+                    // После успешного offer/answer показываем кнопку "Связь" только инициатору
+                    if (globalInitiator === user.id) {
+                        startCallBtn.style.display = 'none';
+                        offerBtn.style.display = 'none';
+                        p2pBtn.style.display = 'inline-block';
+                        p2pBtn.disabled = false;
+                        disconnectBtn.style.display = 'inline-block';
+                        disconnectBtn.disabled = false;
+                        autoAnswerInfo.style.display = 'none';
+                } else {
+                        // Не инициатор - показываем только кнопку disconnect
+                        startCallBtn.style.display = 'none';
+                    offerBtn.style.display = 'none';
+                        p2pBtn.style.display = 'none';
+                        disconnectBtn.style.display = 'inline-block';
+                        disconnectBtn.disabled = false;
+                        autoAnswerInfo.style.display = 'none';
+                    }
+                } else {
+                    startCallBtn.style.display = 'none';
+                    offerBtn.style.display = 'none';
+                    p2pBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'none';
+                    autoAnswerInfo.style.display = 'none';
+                }
+            }
+        }
+        
+        // Обновление кнопок для обоих пользователей
+        function updateAllCallButtons() {
+            updateCallButtons(user1);
+            updateCallButtons(user2);
+        }
+        
+        // Настройка обработчиков PeerConnection
+        function setupPeerConnectionHandlers(user) {
+            user.peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    // Отправляем ICE candidate через signaling сервер
+                    fetch(SIGNALING_SERVER, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'signal',
+                            from: user.id,
+                            to: user.targetUser,
+                            type: 'ice-candidate',
+                            data: event.candidate
+                        })
+                    }).then(response => response.json())
+                      .then(result => user.log(`📤 ICE candidate отправлен: ${JSON.stringify(result)}`, 'info'))
+                      .catch(error => user.log(`❌ Ошибка отправки ICE candidate: ${error.message}`, 'error'));
+                }
+            };
+            
+            user.peerConnection.ontrack = (event) => {
+                user.log('📹 Получен удаленный поток', 'success');
+                const remoteVideo = document.getElementById(`remoteVideo${user.id === user1.id ? '1' : '2'}`);
+                remoteVideo.srcObject = event.streams[0];
+            };
+            
+            user.peerConnection.onconnectionstatechange = () => {
+                user.log(`🔗 Состояние соединения: ${user.peerConnection.connectionState}`, 'info');
+                if (user.peerConnection.connectionState === 'connected') {
+                    user.log('✅ P2P соединение установлено!', 'success');
+                } else if (user.peerConnection.connectionState === 'failed') {
+                    user.log('❌ P2P соединение не удалось', 'error');
+                    } else if (user.peerConnection.connectionState === 'disconnected') {
+                        if (!isResetting) {
+                            user.log('🔌 P2P соединение разорвано - сбрасываем в исходное состояние через onconnectionstatechange', 'warning');
+                            isResetting = true;
+                            // Автоматически сбрасываем пользователя при разрыве соединения
+                            resetUser1();
+                            resetUser2();
+                            globalInitiator = null;
+                            updateAllCallButtons();
+                            isResetting = false;
+                            user.log('✅ Сброс завершен через onconnectionstatechange', 'success');
+                            
+                            // Автоматически перезапускаем пользователей
+                            user1.log('🚀 Автоматический перезапуск user1 через onconnectionstatechange...', 'info');
+                            user2.log('🚀 Автоматический перезапуск user2 через onconnectionstatechange...', 'info');
+                            
+                            // Небольшая задержка перед перезапуском
+                            setTimeout(() => {
+                                startUser(user1, 'user1Id', 'localVideo1');
+                                startUser(user2, 'user2Id', 'localVideo2');
+                            }, 1000);
+                        } else {
+                            user.log('🔌 P2P соединение разорвано - сброс уже выполнен через disconnectCall', 'info');
+                        }
+                    }
+            };
+        }
+        
+        // Обработчики WebRTC сигналов
+        async function handleOffer(user, signal) {
+            if (user.state !== 'connected' && user.state !== 'calling') {
+                user.log(`⚠️ Игнорируем offer - состояние: ${user.state}`, 'warning');
+                return;
+            }
+
+            user.log(`📥 Получен offer от ${signal.from}`, 'warning');
+            user.log(`📥 Offer данные: type=${signal.data.type}, sdp длина=${signal.data.sdp ? signal.data.sdp.length : 'undefined'}`, 'info');
+            
+            try {
+                // Создаем PeerConnection если его нет
+                if (!user.peerConnection) {
+                    user.peerConnection = new RTCPeerConnection(rtcConfig);
+                    setupPeerConnectionHandlers(user);
+                }
+                
+                // Добавляем локальный поток если его нет
+                if (!user.localStream) {
+                    user.localStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: true
+                    });
+                    
+                    // Показываем локальное видео
+                    const localVideo = document.getElementById(`localVideo${user.id === user1.id ? '1' : '2'}`);
+                    localVideo.srcObject = user.localStream;
+                    
+                    user.log('📹 Локальный поток получен и отображен', 'success');
+                }
+                
+                // Добавляем локальные треки к PeerConnection
+                if (user.localStream) {
+                    user.localStream.getTracks().forEach(track => {
+                        user.peerConnection.addTrack(track, user.localStream);
+                    });
+                    user.log('📤 Локальные треки добавлены к PeerConnection', 'info');
+                }
+                
+                // Устанавливаем удаленное описание
+                await user.peerConnection.setRemoteDescription(signal.data);
+                
+                // Создаем и отправляем answer
+                const answer = await user.peerConnection.createAnswer();
+                await user.peerConnection.setLocalDescription(answer);
+                
+                // Отправляем answer через signaling сервер
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: user.id,
+                        to: signal.from,
+                        type: 'answer',
+                        data: answer
+                    })
+                });
+                
+                const result = await response.json();
+                user.log(`📤 Answer отправлен: ${JSON.stringify(result)}`, 'success');
+                
+                // Обновляем состояние
+                user.state = 'calling';
+                updateAllCallButtons();
+                
+            } catch (error) {
+                user.log(`❌ Ошибка обработки offer: ${error.message}`, 'error');
+            }
+        }
+        
+        async function handleAnswer(user, signal) {
+            if (user.state !== 'calling') {
+                user.log(`⚠️ Игнорируем answer - состояние: ${user.state}`, 'warning');
+                return;
+            }
+
+            user.log(`📥 Получен answer от ${signal.from}`, 'warning');
+            user.log(`📥 Answer данные: type=${signal.data.type}, sdp длина=${signal.data.sdp ? signal.data.sdp.length : 'undefined'}`, 'info');
+            
+            try {
+                // Устанавливаем удаленное описание
+                await user.peerConnection.setRemoteDescription(signal.data);
+            user.log(`✅ Offer/Answer обмен завершен!`, 'success');
+            
+                // Переключаем polling на проверку disconnect сигналов
+            if (user.interval) {
+                clearInterval(user.interval);
+                user.interval = null;
+                user.log(`⏹️ Polling остановлен - WebRTC соединение установлено`, 'info');
+                }
+                
+                // Запускаем polling для проверки disconnect сигналов
+                user.interval = setInterval(() => checkSignals(user), 3000);
+                user.log(`🔄 Запущен polling для disconnect сигналов`, 'info');
+                
+                // Обновляем кнопки после завершения offer/answer обмена
+                updateAllCallButtons();
+                
+            } catch (error) {
+                user.log(`❌ Ошибка обработки answer: ${error.message}`, 'error');
+            }
+        }
+        
+        async function handleIceCandidate(user, signal) {
+            if (user.state !== 'calling') {
+                user.log(`⚠️ Игнорируем ICE кандидат - состояние: ${user.state}`, 'warning');
+                return;
+            }
+            
+            try {
+                // Добавляем ICE кандидат к PeerConnection
+                await user.peerConnection.addIceCandidate(signal.data);
+                user.log(`🧊 ICE кандидат добавлен от ${signal.from}`, 'info');
+            } catch (error) {
+                user.log(`❌ Ошибка добавления ICE кандидата: ${error.message}`, 'error');
+            }
+        }
+
+        function handleDisconnect(user, signal) {
+            user.log(`🔍 Отладка handleDisconnect: user.state=${user.state}, user.targetUser=${user.targetUser}, signal.from=${signal.from}`, 'info');
+            user.log(`📥 Получен disconnect сигнал от ${signal.from}`, 'warning');
+            
+            if ((user.state === 'connected' || user.state === 'calling') && user.targetUser === signal.from) {
+                user.log(`🔌 Получен сигнал разрыва соединения от ${signal.from}`, 'warning');
+                user.log(`📊 Причина: ${signal.data.reason || 'не указана'}`, 'info');
+                
+                // Закрываем PeerConnection
+                if (user.peerConnection) {
+                    user.peerConnection.close();
+                    user.peerConnection = null;
+                    user.log(`🔌 PeerConnection закрыт`, 'info');
+                }
+                
+                // Останавливаем локальный поток
+                if (user.localStream) {
+                    user.localStream.getTracks().forEach(track => track.stop());
+                    user.localStream = null;
+                    user.log(`📹 Локальный поток остановлен`, 'info');
+                }
+                
+                // Очищаем видео элементы
+                const localVideo = document.getElementById(`localVideo${user.id === user1.id ? '1' : '2'}`);
+                const remoteVideo = document.getElementById(`remoteVideo${user.id === user1.id ? '1' : '2'}`);
+                localVideo.srcObject = null;
+                remoteVideo.srcObject = null;
+                
+                // Сбрасываем состояние пользователя
+                user.state = 'idle';
+                user.targetUser = null;
+                globalInitiator = null; // Сбрасываем глобального инициатора
+                user.log(`📊 Состояние изменено на: ${user.state}`, 'info');
+                user.log(`🔄 Соединение разорвано, возврат в исходное состояние`, 'success');
+                
+                // Обновляем кнопки
+                updateAllCallButtons();
+            } else {
+                user.log(`⚠️ Игнорируем disconnect от ${signal.from} - состояние: ${user.state}, ожидали: ${user.targetUser}`, 'warning');
+            }
+        }
+        
+        // Отправка тестового answer
+        async function sendTestAnswer(user, toUserId) {
+            const startTime = Date.now();
+            try {
+                user.log(`📤 Автоматическая отправка тестового answer к ${toUserId}`, 'warning');
+                
+                const testAnswer = {
+                    type: 'answer',
+                    sdp: 'v=0\r\no=- 1234567890 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:test\r\na=ice-pwd:test\r\na=fingerprint:sha-256 test\r\na=setup:active\r\na=mid:0\r\na=sendrecv\r\na=rtpmap:111 opus/48000/2\r\n'
+                };
+
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: user.id,
+                        to: toUserId,
+                        type: 'answer',
+                        data: testAnswer
+                    })
+                });
+
+                const result = await response.json();
+                const sendTime = Date.now() - startTime;
+                if (result.success) {
+                    user.log(`✅ Тестовый answer отправлен успешно (${sendTime}мс)`, 'success');
+                    
+                    // Устанавливаем состояние calling для user2
+                    user.state = 'calling';
+                    user.log(`📊 Состояние изменено на: ${user.state}`, 'info');
+                    updateAllCallButtons();
+                } else {
+                    user.log(`❌ Ошибка отправки answer: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        async function sendSignal(user, to, type, data) {
+            try {
+                user.log(`📤 Отправка ${type} к ${to}`, 'warning');
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: user.id,
+                        to: to,
+                        type: type,
+                        data: data
+                    })
+                });
+                
+                const result = await response.json();
+                user.log(`📡 Ответ: ${JSON.stringify(result)}`, 'info');
+                
+                if (result.success) {
+                    user.log(`✅ ${type} отправлен успешно`, 'success');
+                } else {
+                    user.log(`❌ Ошибка отправки: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                user.log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        function resetUser1() {
+            // Останавливаем polling
+            if (user1.interval) {
+                clearInterval(user1.interval);
+                user1.interval = null;
+            }
+            
+            if (user1.peerConnection) {
+                user1.peerConnection.close();
+                user1.peerConnection = null;
+            }
+            
+            if (user1.localStream) {
+                user1.localStream.getTracks().forEach(track => track.stop());
+                user1.localStream = null;
+            }
+            
+            user1.state = 'idle';
+            user1.targetUser = null;
+            user1.log(`✅ user1 сброшен в состояние: ${user1.state}`, 'success');
+            // globalInitiator НЕ сбрасываем здесь - это делается в disconnectCall
+            
+            // Показываем кнопку "Позвонить" для сброшенного пользователя
+            document.getElementById('startCallBtn1').style.display = 'inline-block';
+            document.getElementById('startCallBtn1').disabled = false;
+            document.getElementById('offerBtn1').style.display = 'none';
+            document.getElementById('offerBtn1').disabled = true;
+            document.getElementById('p2pBtn1').style.display = 'none';
+            document.getElementById('p2pBtn1').disabled = true;
+            document.getElementById('disconnectBtn1').style.display = 'none';
+            document.getElementById('disconnectBtn1').disabled = true;
+            
+            document.getElementById('localVideo1').srcObject = null;
+            document.getElementById('remoteVideo1').srcObject = null;
+            
+            user1.log('🔄 User 1 сброшен', 'warning');
+            updateAllCallButtons();
+        }
+        
+        function resetUser2() {
+            // Останавливаем polling
+            if (user2.interval) {
+                clearInterval(user2.interval);
+                user2.interval = null;
+            }
+            
+            if (user2.peerConnection) {
+                user2.peerConnection.close();
+                user2.peerConnection = null;
+            }
+            
+            if (user2.localStream) {
+                user2.localStream.getTracks().forEach(track => track.stop());
+                user2.localStream = null;
+            }
+            
+            user2.state = 'idle';
+            user2.targetUser = null;
+            user2.log(`✅ user2 сброшен в состояние: ${user2.state}`, 'success');
+            // globalInitiator НЕ сбрасываем здесь - это делается в disconnectCall
+            
+            // Показываем кнопку "Позвонить" для сброшенного пользователя
+            document.getElementById('startCallBtn2').style.display = 'inline-block';
+            document.getElementById('startCallBtn2').disabled = false;
+            document.getElementById('offerBtn2').style.display = 'none';
+            document.getElementById('offerBtn2').disabled = true;
+            document.getElementById('p2pBtn2').style.display = 'none';
+            document.getElementById('p2pBtn2').disabled = true;
+            document.getElementById('answerBtn2').style.display = 'none';
+            document.getElementById('answerBtn2').disabled = true;
+            
+            document.getElementById('localVideo2').srcObject = null;
+            document.getElementById('remoteVideo2').srcObject = null;
+            
+            user2.log('🔄 User 2 сброшен', 'warning');
+            updateAllCallButtons();
+        }
+        
+        async function disconnectCall() {
+            // Проверяем, не идет ли уже сброс
+            if (isResetting) {
+                user1.log(`⚠️ Сброс уже выполняется`, 'warning');
+                return;
+            }
+            
+            // Определяем кто нажал кнопку disconnect
+            let caller = null;
+            
+            // Проверяем состояние обоих пользователей
+            if (user1.state === 'calling' && user1.targetUser) {
+                caller = user1;
+            } else if (user2.state === 'calling' && user2.targetUser) {
+                caller = user2;
+            }
+            
+            if (!caller) {
+                user1.log(`⚠️ Не могу разорвать соединение - нет активного соединения`, 'warning');
+                return;
+            }
+            
+            caller.log(`🔌 Разрываем P2P соединение (${caller.id})`, 'warning');
+            isResetting = true;
+            
+            // Закрываем PeerConnection у обоих пользователей
+            if (caller.peerConnection) {
+                caller.peerConnection.close();
+                caller.peerConnection = null;
+                caller.log(`🔌 PeerConnection закрыт у ${caller.id}`, 'info');
+            }
+            
+            // Закрываем PeerConnection у второго пользователя
+            const otherUser = caller.id === 'user1' ? user2 : user1;
+            if (otherUser.peerConnection) {
+                otherUser.peerConnection.close();
+                otherUser.peerConnection = null;
+                otherUser.log(`🔌 PeerConnection закрыт у ${otherUser.id}`, 'info');
+            }
+            
+            // Очищаем сигналы на сервере для обоих пользователей
+                user1.log('🧹 Очистка сигналов на сервере...', 'info');
+                
+            try {
+                // Очищаем сигналы для user1
+                const response1 = await fetch(`${SIGNALING_SERVER}?action=delete&userId=${user1.id}`);
+                const result1 = await response1.json();
+                user1.log(`📡 Очистка ${user1.id}: ${JSON.stringify(result1)}`, 'info');
+                
+                // Очищаем сигналы для user2
+                const response2 = await fetch(`${SIGNALING_SERVER}?action=delete&userId=${user2.id}`);
+                const result2 = await response2.json();
+                user2.log(`📡 Очистка ${user2.id}: ${JSON.stringify(result2)}`, 'info');
+                
+                user1.log('✅ Все сигналы очищены на сервере', 'success');
+                user2.log('✅ Все сигналы очищены на сервере', 'success');
+            } catch (error) {
+                user1.log(`❌ Ошибка очистки сигналов: ${error.message}`, 'error');
+                user2.log(`❌ Ошибка очистки сигналов: ${error.message}`, 'error');
+            }
+            
+            // Сбрасываем состояние обоих пользователей
+            user1.log('🔄 Сбрасываем состояние user1 через disconnectCall', 'info');
+            user2.log('🔄 Сбрасываем состояние user2 через disconnectCall', 'info');
+            resetUser1();
+            resetUser2();
+            
+            // Сбрасываем глобального инициатора
+            globalInitiator = null;
+            user1.log('🔄 globalInitiator сброшен', 'info');
+            user2.log('🔄 globalInitiator сброшен', 'info');
+            
+            // Проверяем, что пользователи действительно в состоянии idle
+            user1.log(`✅ user1.state = ${user1.state}`, 'success');
+            user2.log(`✅ user2.state = ${user2.state}`, 'success');
+            
+            // Обновляем кнопки для обоих пользователей
+            updateAllCallButtons();
+            
+            // Сбрасываем флаг сброса
+            isResetting = false;
+            user1.log('✅ Сброс завершен через disconnectCall', 'success');
+            user2.log('✅ Сброс завершен через disconnectCall', 'success');
+            
+            // Автоматически перезапускаем пользователей
+            user1.log('🚀 Автоматический перезапуск user1...', 'info');
+            user2.log('🚀 Автоматический перезапуск user2...', 'info');
+            
+            // Небольшая задержка перед перезапуском
+            setTimeout(() => {
+                startUser(user1, 'user1Id', 'localVideo1');
+                startUser(user2, 'user2Id', 'localVideo2');
+            }, 1000);
+        }
+        
+        // Функция для сброса состояния обоих пользователей
+        function resetBothUsers() {
+            if (isResetting) {
+                user1.log(`⚠️ Сброс уже выполняется`, 'warning');
+                return;
+            }
+            
+            user1.log('🔄 Сбрасываем состояние обоих пользователей', 'info');
+            isResetting = true;
+            resetUser1();
+            resetUser2();
+            globalInitiator = null;
+            updateAllCallButtons();
+            isResetting = false;
+            user1.log('✅ Состояние обоих пользователей сброшено', 'success');
+        }
+        
+        // Функция для активации P2P соединения
+        async function startP2PCall() {
+            try {
+                // Определяем активного пользователя (инициатора)
+                const activeUser = globalInitiator === user1.id ? user1 : user2;
+                const targetUser = { id: activeUser.targetUser };
+                
+                activeUser.log('📞 Активация P2P соединения...', 'info');
+                
+                // Создаем PeerConnection если его нет
+                if (!activeUser.peerConnection) {
+                    activeUser.peerConnection = new RTCPeerConnection(rtcConfig);
+                    setupPeerConnectionHandlers(activeUser);
+                }
+                
+                // Добавляем локальный поток если его нет
+                if (!activeUser.localStream) {
+                    activeUser.localStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: true
+                    });
+                    
+                    // Показываем локальное видео
+                    const localVideo = document.getElementById(`localVideo${activeUser.id === user1.id ? '1' : '2'}`);
+                    localVideo.srcObject = activeUser.localStream;
+                    
+                    activeUser.log('📹 Локальный поток получен и отображен', 'success');
+                }
+                
+                // Проверяем, не добавлены ли уже треки
+                if (activeUser.localStream && activeUser.peerConnection.getSenders().length === 0) {
+                    activeUser.localStream.getTracks().forEach(track => {
+                        activeUser.peerConnection.addTrack(track, activeUser.localStream);
+                    });
+                    activeUser.log('📤 Локальные треки добавлены к PeerConnection', 'info');
+                } else {
+                    activeUser.log('📤 Локальные треки уже добавлены к PeerConnection', 'info');
+                }
+                
+                // Создаем offer для P2P соединения
+                const offer = await activeUser.peerConnection.createOffer();
+                await activeUser.peerConnection.setLocalDescription(offer);
+                
+                // Отправляем offer через signaling сервер
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: activeUser.id,
+                        to: targetUser.id,
+                        type: 'offer',
+                        data: offer
+                    })
+                });
+                
+                const result = await response.json();
+                activeUser.log(`📤 P2P Offer отправлен: ${JSON.stringify(result)}`, 'success');
+                
+                // Обновляем состояние
+                activeUser.state = 'calling';
+                updateAllCallButtons();
+                
+            } catch (error) {
+                const activeUser = user1.state === 'calling' ? user1 : user2;
+                activeUser.log(`❌ Ошибка активации P2P: ${error.message}`, 'error');
+            }
+        }
+        
+        function copyAllLogs() {
+            const log1 = document.getElementById('log1').innerText;
+            const log2 = document.getElementById('log2').innerText;
+            const allLogs = `=== ЛОГИ USER 1 ===\n${log1}\n\n=== ЛОГИ USER 2 ===\n${log2}\n\n=== ИНФОРМАЦИЯ О ТЕСТЕ ===\nВремя теста: ${new Date().toLocaleString()}\nСервер: ${SIGNALING_SERVER}\nUser 1 ID: ${user1.id}\nUser 2 ID: ${user2.id}`;
+            
+            navigator.clipboard.writeText(allLogs).then(() => {
+                alert('Логи скопированы в буфер обмена!');
+            });
+        }
+    </script>
+</body>
+</html>
+

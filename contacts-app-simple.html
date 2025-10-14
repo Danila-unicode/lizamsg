@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Контакты - Упрощенная версия</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>📞 WebRTC Контакты - Упрощенная версия</h1>
+    
+    <div class="section">
+        <h2>👤 Информация о пользователе</h2>
+        <p id="userInfo">Загрузка...</p>
+        <button class="btn" onclick="logout()">🚪 Выйти</button>
+    </div>
+    
+    <div class="section">
+        <h2>🔍 Поиск пользователей</h2>
+        <input type="text" id="searchPhone" placeholder="Введите номер телефона" value="+79182725363">
+        <button class="btn" onclick="searchUser()">🔍 Найти</button>
+        <div id="searchResults"></div>
+    </div>
+    
+    <div class="section">
+        <h2>👥 Контакты</h2>
+        <button class="btn" onclick="loadContacts()">👥 Загрузить контакты</button>
+        <div id="contactsList">Нажмите кнопку для загрузки контактов</div>
+    </div>
+    
+    <div class="section">
+        <h2>📞 Звонки</h2>
+        <button class="btn" onclick="testCall()">📞 Тест звонка</button>
+        <button class="btn" onclick="endCall()">📴 Завершить звонок</button>
+    </div>
+    
+    <div class="section">
+        <h2>📋 Лог событий</h2>
+        <div id="log" class="log">Готов к работе...\n</div>
+        <button class="btn" onclick="copyLogs()">📋 Копировать логи</button>
+    </div>
+
+    <script>
+        // Переменные
+        let currentUser = null;
+        let currentUserId = null;
+
+        // Логирование
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Проверка авторизации
+        async function checkAuth() {
+            try {
+                log('🔑 Проверяем авторизацию...', 'info');
+                const response = await fetch('api/check_auth.php');
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    currentUser = data.user;
+                    currentUserId = `user${data.user.id}`;
+                    document.getElementById('userInfo').textContent = `👤 ${data.user.phone} (ID: ${data.user.id})`;
+                    log(`✅ Авторизован как: ${data.user.phone}`, 'success');
+                    return true;
+                } else {
+                    log('❌ Не авторизован', 'error');
+                    window.location.href = 'auth.html';
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Ошибка авторизации: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Поиск пользователя
+        async function searchUser() {
+            log('🔍 Функция searchUser вызвана', 'info');
+            const phone = document.getElementById('searchPhone').value;
+            if (!phone) {
+                log('❌ Введите номер телефона', 'error');
+                return;
+            }
+
+            try {
+                log(`🔍 Поиск пользователя: ${phone}`, 'info');
+                const response = await fetch('api/search_user.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phone: phone })
+                });
+                
+                const data = await response.json();
+                log(`📋 Результат поиска: ${JSON.stringify(data)}`, 'info');
+                
+                const resultsContainer = document.getElementById('searchResults');
+                if (data.success && data.user) {
+                    resultsContainer.innerHTML = `
+                        <div style="background: #d4edda; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <p>✅ Пользователь найден: ${data.user.phone}</p>
+                            <button class="btn" onclick="sendContactRequest(${data.user.id}, '${data.user.phone}')">📤 Добавить в контакты</button>
+                        </div>
+                    `;
+                    log('✅ Пользователь найден', 'success');
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div style="background: #f8d7da; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <p>❌ Пользователь не найден</p>
+                        </div>
+                    `;
+                    log('❌ Пользователь не найден', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка поиска: ${error.message}`, 'error');
+            }
+        }
+
+        // Отправка запроса на контакт
+        async function sendContactRequest(contactId, phone) {
+            log(`📤 Отправка запроса: ${contactId} (${phone})`, 'info');
+            try {
+                const response = await fetch('api/send_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phone: phone })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    log('✅ Запрос отправлен', 'success');
+                } else {
+                    log(`❌ Ошибка: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка отправки: ${error.message}`, 'error');
+            }
+        }
+
+        // Загрузка контактов
+        async function loadContacts() {
+            log('👥 Функция loadContacts вызвана', 'info');
+            try {
+                const response = await fetch('api/get_contacts.php');
+                const data = await response.json();
+                
+                const contactsList = document.getElementById('contactsList');
+                if (data.success && data.contacts.length > 0) {
+                    let html = '<h3>Доверенные контакты:</h3>';
+                    data.contacts.forEach(contact => {
+                        html += `
+                            <div style="background: #d4edda; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                                <p>📞 ${contact.phone}</p>
+                                <button class="btn" onclick="callContact(${contact.contact_id}, '${contact.phone}')">📞 Позвонить</button>
+                            </div>
+                        `;
+                    });
+                    contactsList.innerHTML = html;
+                    log(`✅ Загружено ${data.contacts.length} контактов`, 'success');
+                } else {
+                    contactsList.innerHTML = '<p>Нет доверенных контактов</p>';
+                    log('ℹ️ Нет контактов', 'info');
+                }
+            } catch (error) {
+                log(`❌ Ошибка загрузки контактов: ${error.message}`, 'error');
+            }
+        }
+
+        // Звонок контакту
+        async function callContact(contactId, phone) {
+            log(`📞 Звонок: ${phone} (ID: ${contactId})`, 'info');
+            // Здесь будет логика WebRTC
+            log('📞 WebRTC звонок будет реализован позже', 'info');
+        }
+
+        // Тест звонка
+        function testCall() {
+            log('📞 Тест звонка', 'info');
+            log('📞 Функция звонка работает!', 'success');
+        }
+
+        // Завершить звонок
+        function endCall() {
+            log('📴 Завершение звонка', 'info');
+            log('📴 Звонок завершен', 'success');
+        }
+
+        // Выход
+        async function logout() {
+            log('🚪 Выход из системы', 'info');
+            try {
+                const response = await fetch('api/logout.php');
+                const data = await response.json();
+                if (data.success) {
+                    log('✅ Выход выполнен', 'success');
+                    window.location.href = 'auth.html';
+                } else {
+                    log('❌ Ошибка выхода', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка выхода: ${error.message}`, 'error');
+            }
+        }
+
+        // Копирование логов
+        function copyLogs() {
+            const logElement = document.getElementById('log');
+            const logText = logElement.textContent;
+            navigator.clipboard.writeText(logText).then(() => {
+                log('✅ Логи скопированы', 'success');
+            }).catch(err => {
+                log(`❌ Ошибка копирования: ${err.message}`, 'error');
+            });
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 Приложение загружено', 'info');
+            
+            // Проверяем авторизацию
+            const isAuth = await checkAuth();
+            if (isAuth) {
+                log('✅ Приложение готово к работе', 'success');
+            } else {
+                log('❌ Приложение не готово', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

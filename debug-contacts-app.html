@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug contacts-app.html</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .debug-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug contacts-app.html</h1>
+    
+    <div class="debug-section">
+        <h2>Проверка функций</h2>
+        <button class="test-button" onclick="testFunction('searchUser')">🔍 searchUser</button>
+        <button class="test-button" onclick="testFunction('loadContacts')">👥 loadContacts</button>
+        <button class="test-button" onclick="testFunction('showTab')">📑 showTab</button>
+        <button class="test-button" onclick="testFunction('callContact')">📞 callContact</button>
+        <button class="test-button" onclick="testFunction('endCall')">📴 endCall</button>
+        <button class="test-button" onclick="testFunction('logout')">🚪 logout</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Проверка элементов</h2>
+        <button class="test-button" onclick="checkElements()">🔍 Проверить элементы</button>
+        <button class="test-button" onclick="checkAuth()">🔑 Проверить авторизацию</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Лог отладки</h2>
+        <div id="debugLog" class="log">Готов к отладке...\n</div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Переход к основному приложению</h2>
+        <a href="contacts-app.html" class="test-button" style="text-decoration: none; display: inline-block;">🚀 Открыть contacts-app.html</a>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('debugLog');
+            const time = new Date().toLocaleTimeString();
+            logElement.textContent += `[${time}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function testFunction(funcName) {
+            log(`🧪 Тестируем функцию: ${funcName}`);
+            
+            if (typeof window[funcName] === 'function') {
+                log(`✅ Функция ${funcName} определена`);
+                try {
+                    if (funcName === 'showTab') {
+                        window[funcName]('contacts');
+                    } else if (funcName === 'callContact') {
+                        window[funcName](12, '+79182725363');
+                    } else {
+                        window[funcName]();
+                    }
+                    log(`✅ Функция ${funcName} вызвана успешно`);
+                } catch (error) {
+                    log(`❌ Ошибка при вызове ${funcName}: ${error.message}`);
+                }
+            } else {
+                log(`❌ Функция ${funcName} не определена`);
+            }
+        }
+
+        function checkElements() {
+            log('🔍 Проверяем элементы DOM...');
+            
+            const elements = [
+                'searchPhone',
+                'searchResults', 
+                'contactsList',
+                'requestsList',
+                'rejectedList',
+                'localVideo',
+                'remoteVideo',
+                'endCallBtn',
+                'connectionStatus',
+                'userInfo'
+            ];
+            
+            elements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    log(`✅ Элемент ${elementId} найден`);
+                } else {
+                    log(`❌ Элемент ${elementId} не найден`);
+                }
+            });
+        }
+
+        async function checkAuth() {
+            log('🔑 Проверяем авторизацию...');
+            try {
+                const response = await fetch('api/check_auth.php');
+                const data = await response.json();
+                log(`Результат авторизации: ${JSON.stringify(data)}`);
+                
+                if (data.success) {
+                    log('✅ Пользователь авторизован');
+                } else {
+                    log('❌ Пользователь не авторизован');
+                }
+            } catch (error) {
+                log(`❌ Ошибка проверки авторизации: ${error.message}`);
+            }
+        }
+
+        // Автоматическая проверка при загрузке
+        window.addEventListener('load', function() {
+            log('🚀 Страница отладки загружена');
+            log('Проверяем доступность функций...');
+            
+            const functions = ['searchUser', 'loadContacts', 'showTab', 'callContact', 'endCall', 'logout'];
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    log(`✅ ${funcName} доступна`);
+                } else {
+                    log(`❌ ${funcName} недоступна`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

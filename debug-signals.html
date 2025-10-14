@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Signal Delivery</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .log { border: 1px solid #ddd; padding: 10px; margin-top: 10px; height: 400px; overflow-y: scroll; background-color: #f9f9f9; font-family: monospace; font-size: 12px; }
+        .log-entry { margin-bottom: 5px; padding: 3px; border-radius: 3px; }
+        .log-entry.info { color: #0056b3; }
+        .log-entry.warning { color: #ffc107; }
+        .log-entry.error { color: #dc3545; }
+        .log-entry.success { color: #28a745; }
+        input[type="text"], button { padding: 10px; margin-right: 10px; border-radius: 5px; border: 1px solid #ddd; }
+        button { background-color: #007bff; color: white; cursor: pointer; border: none; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Signal Delivery</h1>
+        <p>Эта страница поможет проверить доставку сигналов между пользователями.</p>
+        
+        <div>
+            <label for="userIdInput">Ваш User ID (например, user1 или user12):</label>
+            <input type="text" id="userIdInput" value="user1">
+            <button onclick="startDebug()">Начать отладку</button>
+            <button onclick="sendTestPing()">Отправить тестовый ping</button>
+        </div>
+        
+        <div>
+            <label for="targetUserIdInput">Целевой User ID для ping:</label>
+            <input type="text" id="targetUserIdInput" value="user12">
+        </div>
+        
+        <div class="log" id="log">
+            <div class="log-entry info">[Система] Готов к отладке сигналов.</div>
+        </div>
+    </div>
+
+    <script>
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+        // const SIGNALING_SERVER = 'api/signaling_server.php'; // Локальный сервер для тестирования
+        let lastSignalId = 0;
+        let signalCheckInterval = null;
+        let currentUserId = null;
+        let processedSignals = new Set();
+        let sentSignals = new Set();
+        let pendingPings = new Map(); // Храним ожидающие pong'и
+        let signalCounter = 0; // Счетчик для уникальных ID сигналов
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function generateSignalId() {
+            signalCounter++;
+            return `signal_${Date.now()}_${signalCounter}_${currentUserId}`;
+        }
+
+        async function sendSignal(to, type, data) {
+            try {
+                // Проверяем, не отправляли ли мы уже такой сигнал недавно
+                const sendKey = `send_${type}_${to}_${JSON.stringify(data).substring(0, 50)}`;
+                
+                if (sentSignals.has(sendKey)) {
+                    log(`⚠️ Игнорируем дублированную отправку сигнала: ${type} к ${to}`, 'warning');
+                    return true; // Возвращаем true, так как сигнал уже был отправлен
+                }
+                
+                sentSignals.add(sendKey);
+                log(`📤 Отправка сигнала: ${type} от ${currentUserId} к ${to}`, 'info');
+                
+                const signalData = {
+                    action: 'signal',
+                    from: currentUserId,
+                    to: to,
+                    type: type,
+                    data: data
+                };
+                
+                log(`📤 Данные сигнала: ${JSON.stringify(signalData)}`, 'info');
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(signalData)
+                });
+                
+                const result = await response.json();
+                log(`📡 Ответ сервера: ${JSON.stringify(result)}`, 'info');
+                return result.success;
+            } catch (error) {
+                log(`❌ Ошибка отправки сигнала: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function checkSignals() {
+            if (!currentUserId) return;
+            
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&userId=${currentUserId}&since=${lastSignalId}`;
+                log(`🔍 Запрос сигналов: ${url}`, 'info');
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`📡 Ответ сервера: ${JSON.stringify(data)}`, 'info');
+
+                if (data.success && data.signals && data.signals.length > 0) {
+                    log(`📨 Получено ${data.signals.length} сигналов`, 'success');
+                    
+                    // Фильтруем сигналы - берем только те, которые новее lastSignalId
+                    const newSignals = data.signals.filter(signal => {
+                        const signalTimestamp = signal.timestamp || signal.id;
+                        return signalTimestamp > lastSignalId;
+                    });
+                    
+                    if (newSignals.length === 0) {
+                        log(`🔍 Все сигналы уже обработаны (проверка #${Math.floor(Date.now() / 1000)})`, 'info');
+                        // Обновляем lastSignalId до максимального значения
+                        const maxTimestamp = Math.max(...data.signals.map(s => s.timestamp || s.id));
+                        lastSignalId = Math.max(lastSignalId, maxTimestamp);
+                        return;
+                    }
+                    
+                    log(`📨 Обрабатываем ${newSignals.length} новых сигналов`, 'success');
+                    
+                    newSignals.forEach(signal => {
+                        // СРАЗУ обновляем lastSignalId для этого сигнала
+                        lastSignalId = Math.max(lastSignalId, signal.timestamp || signal.id);
+                        
+                        log(`📨 Сигнал: ${signal.type} от ${signal.from} к ${signal.to}`, 'info');
+                        
+                        // Проверяем, не обрабатывали ли мы уже этот сигнал
+                        const signalId = signal.data?.signalId || 'no_id';
+                        const signalKey = `${signal.type}_${signal.from}_${signalId}`;
+                        if (processedSignals.has(signalKey)) {
+                            log(`⚠️ Игнорируем уже обработанный сигнал: ${signal.type} от ${signal.from} (ID: ${signalId})`, 'warning');
+                            return;
+                        }
+                        
+                        processedSignals.add(signalKey);
+                        log(`✅ Обрабатываем новый сигнал: ${signal.type} от ${signal.from}`, 'success');
+                        
+                        // Очищаем старые сигналы, если их слишком много (больше 50)
+                        if (processedSignals.size > 50) {
+                            log('🧹 Очищаем старые обработанные сигналы (больше 50)', 'info');
+                            processedSignals.clear();
+                        }
+                        
+                        // Игнорируем свои собственные сигналы
+                        if (signal.from === currentUserId) {
+                            log(`⚠️ Игнорируем свой собственный сигнал: ${signal.type}`, 'warning');
+                            return;
+                        }
+                        
+                        if (signal.type === 'ping') {
+                            const signalId = signal.data.signalId;
+                            log(`🏓 Получен ping от ${signal.from} (ID: ${signalId}) - отправляем pong`, 'warning');
+                            sendSignal(signal.from, 'pong', { 
+                                from: currentUserId, 
+                                timestamp: Date.now(),
+                                signalId: signalId // Передаем тот же ID обратно
+                            });
+                        } else if (signal.type === 'pong') {
+                            const signalId = signal.data.signalId;
+                            // Проверяем, ожидали ли мы pong от этого пользователя с этим ID
+                            if (pendingPings.has(signal.from)) {
+                                const pingInfo = pendingPings.get(signal.from);
+                                if (pingInfo.signalId === signalId) {
+                                    clearTimeout(pingInfo.timeout);
+                                    pendingPings.delete(signal.from);
+                                    log(`🏓 Получен pong от ${signal.from} (ID: ${signalId}) - пользователь онлайн!`, 'success');
+                                } else {
+                                    log(`🏓 Получен pong от ${signal.from} с неправильным ID (ожидали: ${pingInfo.signalId}, получили: ${signalId})`, 'warning');
+                                }
+                            } else {
+                                log(`🏓 Получен неожиданный pong от ${signal.from} (ID: ${signalId})`, 'info');
+                            }
+                        }
+                    });
+                } else {
+                    log(`🔍 Нет новых сигналов (проверка #${Math.floor(Date.now() / 1000)})`, 'info');
+                }
+            } catch (error) {
+                log(`❌ Ошибка проверки сигналов: ${error.message}`, 'error');
+            }
+        }
+
+        function startDebug() {
+            const userIdInput = document.getElementById('userIdInput').value;
+            if (!userIdInput) {
+                log('Пожалуйста, введите User ID.', 'error');
+                return;
+            }
+            
+            currentUserId = userIdInput;
+            lastSignalId = Math.floor(Date.now() / 1000); // Начинаем с текущего времени в секундах для Yandex Cloud
+            processedSignals.clear();
+            sentSignals.clear();
+            pendingPings.clear();
+            signalCounter = 0; // Сбрасываем счетчик сигналов
+            log(`🚀 Начинаем отладку для пользователя: ${currentUserId}`, 'info');
+
+            if (signalCheckInterval) {
+                clearInterval(signalCheckInterval);
+            }
+            signalCheckInterval = setInterval(checkSignals, 2000);
+            checkSignals();
+        }
+
+        function sendTestPing() {
+            const targetUserId = document.getElementById('targetUserIdInput').value;
+            if (!targetUserId || !currentUserId) {
+                log('Пожалуйста, введите User ID и целевой User ID.', 'error');
+                return;
+            }
+            
+            // Проверяем, не отправляли ли мы уже ping к этому пользователю
+            if (pendingPings.has(targetUserId)) {
+                log(`⚠️ Уже ожидаем pong от ${targetUserId}`, 'warning');
+                return;
+            }
+            
+            // Генерируем уникальный ID для этого сигнала
+            const signalId = generateSignalId();
+            log(`🏓 Отправляем тестовый ping к ${targetUserId} (ID: ${signalId})`, 'warning');
+            
+            // Запоминаем, что мы ожидаем pong от этого пользователя
+            pendingPings.set(targetUserId, {
+                signalId: signalId,
+                timestamp: Date.now(),
+                timeout: setTimeout(() => {
+                    log(`⏰ Таймаут ожидания pong от ${targetUserId} (ID: ${signalId}) - пользователь не в сети`, 'error');
+                    pendingPings.delete(targetUserId);
+                }, 5000) // 5 секунд таймаут
+            });
+            
+            sendSignal(targetUserId, 'ping', { 
+                from: currentUserId,
+                timestamp: Date.now(),
+                signalId: signalId,
+                test: true
+            });
+        }
+    </script>
+</body>
+</html>

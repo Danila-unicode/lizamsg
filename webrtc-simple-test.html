@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Простой Тест</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .status.connecting { background: #fff3cd; color: #856404; }
+        .video-container {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .video-wrapper {
+            flex: 1;
+            text-align: center;
+        }
+        video {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 8px;
+            background: #000;
+        }
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 WebRTC Простой Тест</h1>
+        
+        <div class="status disconnected" id="status">
+            Статус: Отключен
+        </div>
+
+        <div>
+            <input type="text" id="userId" placeholder="ID пользователя" value="user1">
+            <input type="text" id="roomId" placeholder="ID комнаты" value="room1">
+        </div>
+
+        <div>
+            <button class="btn btn-primary" onclick="initWebRTC()">Инициализировать WebRTC</button>
+            <button class="btn btn-success" onclick="startCall()" id="startBtn" disabled>Начать звонок</button>
+            <button class="btn btn-danger" onclick="endCall()" id="endBtn" disabled>Завершить звонок</button>
+        </div>
+
+        <div class="video-container">
+            <div class="video-wrapper">
+                <h3>Локальное видео</h3>
+                <video id="localVideo" autoplay muted></video>
+            </div>
+            <div class="video-wrapper">
+                <h3>Удаленное видео</h3>
+                <video id="remoteVideo" autoplay></video>
+            </div>
+        </div>
+
+        <div class="log" id="log">
+            <div>Лог событий:</div>
+        </div>
+    </div>
+
+    <script>
+        // Переменные
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let currentUserId = null;
+        let isInitialized = false;
+        let signalCheckInterval = null;
+        let lastSignalId = 0;
+
+        // HTTP сигналинг сервер
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+
+        // Логирование
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logElement.innerHTML += `<div>[${time}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        // Обновление статуса
+        function updateStatus(status) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = `Статус: ${status === 'connected' ? 'Подключен' : 
+                                                      status === 'connecting' ? 'Подключение...' : 'Отключен'}`;
+        }
+
+        // Инициализация WebRTC
+        async function initWebRTC() {
+            try {
+                log('=== НАЧАЛО ИНИЦИАЛИЗАЦИИ ===');
+                
+                const userId = document.getElementById('userId').value;
+                const roomId = document.getElementById('roomId').value;
+                
+                if (!userId || !roomId) {
+                    log('❌ Ошибка: Введите ID пользователя и комнаты');
+                    return;
+                }
+
+                log(`👤 Пользователь: ${userId}`);
+                log(`🏠 Комната: ${roomId}`);
+                
+                currentUserId = userId;
+                updateStatus('connecting');
+
+                // Шаг 1: Получаем медиа потоки
+                log('📹 Получение медиа потоков...');
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                document.getElementById('localVideo').srcObject = localStream;
+                log('✅ Медиа потоки получены');
+
+                // Шаг 2: Создаем peer connection
+                log('🔗 Создание peer connection...');
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { 
+                            urls: 'turn:62.84.126.200:3478', 
+                            username: 'webrtc', 
+                            credential: 'password123' 
+                        }
+                    ]
+                });
+                log('✅ Peer connection создан');
+
+                // Шаг 3: Добавляем локальный поток
+                log('📤 Добавление локального потока...');
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                log('✅ Локальный поток добавлен');
+
+                // Шаг 4: Настраиваем обработчики
+                log('⚙️ Настройка обработчиков...');
+                
+                peerConnection.onicecandidate = async (event) => {
+                    if (event.candidate) {
+                        log(`🧊 ICE кандидат: ${event.candidate.candidate}`);
+                        
+                        // Отправляем ICE кандидат
+                        const roomId = document.getElementById('roomId').value;
+                        await sendSignal(roomId, 'broadcast', 'ice-candidate', event.candidate);
+                    }
+                };
+
+                peerConnection.ontrack = (event) => {
+                    log('📥 Получен удаленный поток');
+                    remoteStream = event.streams[0];
+                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                };
+
+                peerConnection.onconnectionstatechange = () => {
+                    log(`🔄 Состояние соединения: ${peerConnection.connectionState}`);
+                    if (peerConnection.connectionState === 'connected') {
+                        updateStatus('connected');
+                        document.getElementById('startBtn').disabled = true;
+                        document.getElementById('endBtn').disabled = false;
+                    }
+                };
+
+                log('✅ Обработчики настроены');
+
+                // Шаг 5: Присоединяемся к комнате
+                log('🚪 Присоединение к комнате...');
+                const joined = await joinRoom(roomId);
+                
+                if (joined) {
+                    isInitialized = true;
+                    updateStatus('connected');
+                    document.getElementById('startBtn').disabled = false;
+                    log('✅ WebRTC инициализирован успешно!');
+                    
+                    // Проверяем пользователей в комнате
+                    await checkRoomUsers(roomId);
+                    
+                    // Начинаем проверку входящих сигналов
+                    startSignalPolling(roomId);
+                } else {
+                    log('❌ Ошибка присоединения к комнате');
+                    updateStatus('disconnected');
+                }
+
+            } catch (error) {
+                log(`❌ Ошибка инициализации: ${error.message}`);
+                updateStatus('disconnected');
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Присоединение к комнате
+        async function joinRoom(roomId) {
+            try {
+                log(`🚪 Присоединение к комнате ${roomId}...`);
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'join',
+                        roomId: roomId,
+                        userId: currentUserId
+                    })
+                });
+                
+                const data = await response.json();
+                log(`📡 Ответ сервера: ${JSON.stringify(data)}`);
+                
+                if (data.success) {
+                    log('✅ Присоединились к комнате');
+                    return true;
+                } else {
+                    log(`❌ Ошибка присоединения: ${data.error}`);
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Ошибка HTTP запроса: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Проверка пользователей в комнате
+        async function checkRoomUsers(roomId) {
+            try {
+                log(`👥 Проверяем пользователей в комнате ${roomId}...`);
+                
+                const url = `${SIGNALING_SERVER}?action=room&roomId=${roomId}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`📡 Пользователи в комнате: ${JSON.stringify(data)}`);
+                
+                if (data.success && data.roomUsers) {
+                    log(`👥 В комнате ${roomId} находятся: ${data.roomUsers.join(', ')}`);
+                }
+            } catch (error) {
+                log(`❌ Ошибка проверки пользователей: ${error.message}`);
+            }
+        }
+
+        // Начать звонок
+        async function startCall() {
+            try {
+                log('📞 Начинаем звонок...');
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                log('✅ Offer создан');
+                
+                const roomId = document.getElementById('roomId').value;
+                const success = await sendSignal(roomId, 'broadcast', 'offer', offer);
+                
+                if (success) {
+                    log('✅ Offer отправлен');
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('endBtn').disabled = false;
+                } else {
+                    log('❌ Ошибка отправки offer');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка начала звонка: ${error.message}`);
+            }
+        }
+
+        // Отправка сигнала
+        async function sendSignal(roomId, to, type, data) {
+            try {
+                log(`📤 Отправка сигнала: ${type} в комнату ${roomId}`);
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        roomId: roomId,
+                        from: currentUserId,
+                        to: to,
+                        type: type,
+                        data: data
+                    })
+                });
+                
+                const result = await response.json();
+                log(`📡 Ответ сервера: ${JSON.stringify(result)}`);
+                
+                return result.success;
+            } catch (error) {
+                log(`❌ Ошибка отправки сигнала: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Начало проверки сигналов
+        function startSignalPolling(roomId) {
+            if (signalCheckInterval) {
+                clearInterval(signalCheckInterval);
+            }
+            
+            log('🔄 Начинаем проверку входящих сигналов...');
+            
+            // Проверяем сигналы каждые 3 секунды
+            signalCheckInterval = setInterval(() => {
+                checkSignals(roomId);
+            }, 3000);
+        }
+
+        // Остановка проверки сигналов
+        function stopSignalPolling() {
+            if (signalCheckInterval) {
+                clearInterval(signalCheckInterval);
+                signalCheckInterval = null;
+                log('⏹️ Остановлена проверка сигналов');
+            }
+        }
+
+        // Проверка сигналов
+        async function checkSignals(roomId) {
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&roomId=${roomId}&userId=${currentUserId}&since=${lastSignalId}`;
+                log(`🔍 Проверяем сигналы: ${url}`);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`📡 Ответ сервера на проверку сигналов: ${JSON.stringify(data)}`);
+                
+                if (data.success && data.signals && data.signals.length > 0) {
+                    log(`📥 Получено ${data.signals.length} сигналов`);
+                    
+                    data.signals.forEach(signal => {
+                        handleIncomingSignal(signal);
+                        lastSignalId = Math.max(lastSignalId, signal.id);
+                    });
+                } else {
+                    log(`📭 Нет новых сигналов (since: ${lastSignalId})`);
+                }
+            } catch (error) {
+                log(`❌ Ошибка проверки сигналов: ${error.message}`);
+            }
+        }
+
+        // Обработка входящих сигналов
+        async function handleIncomingSignal(signal) {
+            try {
+                log(`📨 Получен сигнал: ${signal.type} от ${signal.from}`);
+                
+                // Игнорируем свои собственные сигналы
+                if (signal.from === currentUserId) {
+                    log(`⏭️ Игнорируем свой собственный сигнал: ${signal.type}`);
+                    return;
+                }
+                
+                if (signal.type === 'offer') {
+                    // Входящий звонок - создаем answer
+                    log('📞 Входящий звонок! Создаем answer...');
+                    
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    
+                    // Отправляем answer
+                    const roomId = document.getElementById('roomId').value;
+                    await sendSignal(roomId, signal.from, 'answer', answer);
+                    
+                    log('✅ Answer отправлен');
+                    
+                } else if (signal.type === 'answer') {
+                    // Получили answer
+                    log('📥 Получен answer');
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data));
+                    log('✅ Answer установлен');
+                    
+                } else if (signal.type === 'ice-candidate') {
+                    // Получили ICE кандидат
+                    log('🧊 Получен ICE кандидат');
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(signal.data));
+                    log('✅ ICE кандидат добавлен');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка обработки сигнала: ${error.message}`);
+            }
+        }
+
+        // Завершить звонок
+        function endCall() {
+            log('📴 Завершаем звонок...');
+            
+            // Останавливаем проверку сигналов
+            stopSignalPolling();
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            document.getElementById('localVideo').srcObject = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            
+            isInitialized = false;
+            updateStatus('disconnected');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('endBtn').disabled = true;
+            
+            log('✅ Звонок завершен');
+        }
+
+        // Проверка поддержки WebRTC
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            log('❌ WebRTC не поддерживается в этом браузере');
+        } else {
+            log('✅ WebRTC поддерживается');
+        }
+
+        log('🚀 Простой тест WebRTC готов к работе');
+    </script>
+</body>
+</html>

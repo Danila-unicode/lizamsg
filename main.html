@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Контакты - Главная</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .main-header {
+            margin-bottom: 30px;
+        }
+
+        .main-header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .main-header p {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .user-info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .user-details {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .status.error {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .status.loading {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.info {
+            color: #3498db;
+        }
+
+        .log-entry.success {
+            color: #2ecc71;
+        }
+
+        .log-entry.error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="main-header">
+            <h1>🎯 WebRTC Контакты</h1>
+            <p>Система видеозвонков с авторизацией</p>
+        </div>
+
+        <div id="statusMessage" class="status" style="display: none;"></div>
+
+        <div id="userInfo" class="user-info" style="display: none;">
+            <h3>👤 Информация о пользователе</h3>
+            <div id="userDetails"></div>
+        </div>
+
+        <div id="authButtons">
+            <a href="auth.html" class="btn btn-primary">Войти в систему</a>
+            <a href="register.html" class="btn btn-secondary">Зарегистрироваться</a>
+        </div>
+
+        <div id="appButtons" style="display: none;">
+            <a href="index.php" class="btn btn-primary">Открыть приложение</a>
+            <a href="contacts-app.html" class="btn btn-secondary">Контакты (тест)</a>
+            <button onclick="logout()" class="btn btn-secondary">Выйти</button>
+        </div>
+
+        <div class="log" id="log">
+            <div class="log-entry info">[Система] Проверка авторизации...</div>
+        </div>
+    </div>
+
+    <script>
+        // Логирование
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Показать статус
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Проверка авторизации
+        async function checkAuth() {
+            try {
+                log('Проверка авторизации...', 'info');
+                
+                const response = await fetch('api/check_auth.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('Пользователь авторизован', 'success');
+                    showUserInfo(data.user);
+                } else {
+                    log('Пользователь не авторизован', 'info');
+                    showAuthButtons();
+                }
+                
+            } catch (error) {
+                log(`Ошибка проверки авторизации: ${error.message}`, 'error');
+                showStatus('Ошибка соединения с сервером', 'error');
+                showAuthButtons();
+            }
+        }
+
+        // Показать информацию о пользователе
+        function showUserInfo(user) {
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userDetails').innerHTML = `
+                <div class="user-details">ID: ${user.id}</div>
+                <div class="user-details">Телефон: ${user.phone}</div>
+            `;
+            document.getElementById('authButtons').style.display = 'none';
+            document.getElementById('appButtons').style.display = 'block';
+        }
+
+        // Показать кнопки авторизации
+        function showAuthButtons() {
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('authButtons').style.display = 'block';
+            document.getElementById('appButtons').style.display = 'none';
+        }
+
+        // Выход из системы
+        async function logout() {
+            try {
+                log('Выход из системы...', 'info');
+                
+                const response = await fetch('api/logout.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('Выход выполнен успешно', 'success');
+                    showStatus('Выход выполнен успешно', 'success');
+                    showAuthButtons();
+                } else {
+                    log(`Ошибка выхода: ${data.message}`, 'error');
+                    showStatus('Ошибка при выходе', 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка: ${error.message}`, 'error');
+                showStatus('Ошибка соединения', 'error');
+            }
+        }
+
+        // Проверяем авторизацию при загрузке страницы
+        window.addEventListener('load', checkAuth);
+
+        log('Главная страница загружена', 'success');
+    </script>
+</body>
+</html>

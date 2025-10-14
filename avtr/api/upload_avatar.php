@@ -93,15 +93,11 @@ try {
         exit();
     }
     
-    // Получаем текущий аватар пользователя для удаления
+    // Запоминаем путь старого аватара для удаления после загрузки нового
     $stmt = $pdo->prepare("SELECT avatar_path FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $current_avatar = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // Удаляем старый аватар если он существует
-    if ($current_avatar && $current_avatar['avatar_path'] && file_exists($current_avatar['avatar_path'])) {
-        unlink($current_avatar['avatar_path']);
-    }
+    $old_avatar_path = $current_avatar ? $current_avatar['avatar_path'] : null;
     
     // Генерируем уникальное случайное имя файла (16 символов)
     do {
@@ -185,6 +181,21 @@ try {
             error_log("DEBUG: Обновление БД - user_id: $user_id, avatar_path: $avatar_path");
             error_log("DEBUG: Результат обновления: " . ($update_result ? 'true' : 'false'));
             error_log("DEBUG: Затронуто строк: $affected_rows");
+            
+            // Удаляем старый аватар после успешной загрузки нового
+            if ($old_avatar_path) {
+                $old_file_path = '../../' . $old_avatar_path; // Относительный путь от avtr/api/
+                
+                if (file_exists($old_file_path)) {
+                    if (unlink($old_file_path)) {
+                        error_log("DEBUG: Старый аватар успешно удален: " . $old_file_path);
+                    } else {
+                        error_log("DEBUG: Не удалось удалить старый аватар: " . $old_file_path);
+                    }
+                } else {
+                    error_log("DEBUG: Старый аватар не найден: " . $old_file_path);
+                }
+            }
             
             echo json_encode([
                 'success' => true, 

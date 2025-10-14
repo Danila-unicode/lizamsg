@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Простой Тест</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .test-section h3 {
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .video-box {
+            text-align: center;
+        }
+        
+        .video-box video {
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 WebRTC Простой Тест</h1>
+        
+        <!-- Тест 1: Проверка поддержки WebRTC -->
+        <div class="test-section">
+            <h3>1. Проверка поддержки WebRTC</h3>
+            <button class="btn" onclick="checkWebRTCSupport()">Проверить поддержку</button>
+            <div id="webrtcStatus" class="status" style="display: none;"></div>
+        </div>
+        
+        <!-- Тест 2: Получение медиа потоков -->
+        <div class="test-section">
+            <h3>2. Получение медиа потоков</h3>
+            <button class="btn" onclick="getUserMedia()">Получить камеру/микрофон</button>
+            <button class="btn danger" onclick="stopUserMedia()">Остановить</button>
+            <div id="mediaStatus" class="status" style="display: none;"></div>
+            <div class="video-container">
+                <div class="video-box">
+                    <h4>Локальное видео</h4>
+                    <video id="localVideo" autoplay muted playsinline></video>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Тест 3: Peer Connection -->
+        <div class="test-section">
+            <h3>3. Создание Peer Connection</h3>
+            <button class="btn" onclick="createPeerConnection()">Создать соединение</button>
+            <button class="btn danger" onclick="closePeerConnection()">Закрыть соединение</button>
+            <div id="peerStatus" class="status" style="display: none;"></div>
+        </div>
+        
+        <!-- Тест 4: Сигналинг -->
+        <div class="test-section">
+            <h3>4. Тест сигналинга</h3>
+            <div class="input-group">
+                <label>ID пользователя:</label>
+                <input type="text" id="userId" value="test_user_1" placeholder="Введите ID пользователя">
+            </div>
+            <button class="btn" onclick="testSignaling()">Тест сигналинга</button>
+            <button class="btn" onclick="sendTestSignal()">Отправить тестовый сигнал</button>
+            <div id="signalingStatus" class="status" style="display: none;"></div>
+        </div>
+
+        <!-- Тест 5: Полный WebRTC тест -->
+        <div class="test-section">
+            <h3>5. Полный тест WebRTC (все стадии)</h3>
+            <p><strong>Инструкция:</strong> Откройте эту страницу в двух вкладках браузера для тестирования между двумя пользователями.</p>
+            
+            <div style="display: flex; gap: 20px; margin: 20px 0;">
+                <div style="flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+                    <h4>👤 Пользователь 1</h4>
+                    <input type="text" id="user1Id" placeholder="ID пользователя 1" value="user1" style="width: 100%; margin-bottom: 10px;">
+                    <button class="btn" onclick="startUser1()">🚀 Запустить User 1</button>
+                    <button class="btn" onclick="sendPing1()" id="pingBtn1" disabled>📡 Ping к User 2</button>
+                    <button class="btn" onclick="testOffer1()" id="offerBtn1" disabled style="background: #2196F3;">📤 Отправить Offer</button>
+                    <button class="btn" onclick="disconnectCall1()" id="disconnectBtn1" disabled style="background: #f44336;">🔌 Разорвать соединение</button>
+                    <div id="user1Status" class="status" style="display: none; margin-top: 10px;"></div>
+                </div>
+                
+                <div style="flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+                    <h4>👤 Пользователь 2</h4>
+                    <input type="text" id="user2Id" placeholder="ID пользователя 2" value="user2" style="width: 100%; margin-bottom: 10px;">
+                    <button class="btn" onclick="startUser2()">🚀 Запустить User 2</button>
+                    <button class="btn" onclick="sendPing2()" id="pingBtn2" disabled>📡 Ping к User 1</button>
+                    <button class="btn" onclick="testAnswer2()" id="answerBtn2" disabled style="background: #4CAF50;">📥 Отправить Answer</button>
+                    <button class="btn" onclick="disconnectCall2()" id="disconnectBtn2" disabled style="background: #f44336;">🔌 Разорвать соединение</button>
+                    <div id="user2Status" class="status" style="display: none; margin-top: 10px;"></div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin: 20px 0;">
+                <div style="flex: 1;">
+                    <h4>📹 Видео User 1</h4>
+                    <video id="localVideo1" autoplay muted style="width: 100%; max-width: 300px; height: 200px; border: 2px solid #4CAF50; background: #000;"></video>
+                    <video id="remoteVideo1" autoplay style="width: 100%; max-width: 300px; height: 200px; border: 2px solid #2196F3; background: #000;"></video>
+                </div>
+                <div style="flex: 1;">
+                    <h4>📹 Видео User 2</h4>
+                    <video id="localVideo2" autoplay muted style="width: 100%; max-width: 300px; height: 200px; border: 2px solid #4CAF50; background: #000;"></video>
+                    <video id="remoteVideo2" autoplay style="width: 100%; max-width: 300px; height: 200px; border: 2px solid #2196F3; background: #000;"></video>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="copyAllLogs()" style="background: #4CAF50;">📋 Копировать все логи</button>
+                <button class="btn" onclick="resetAllUsers()" style="background: #ff9800;">🔄 Сбросить все</button>
+            </div>
+        </div>
+        
+        <!-- Лог -->
+        <div class="test-section">
+            <h3>📝 Лог событий</h3>
+            <button class="btn" onclick="clearLog()">Очистить лог</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let localStream = null;
+        let peerConnection = null;
+        let currentUserId = null;
+        
+        // Логирование
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '📝';
+            logElement.innerHTML += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.style.display = 'block';
+        }
+        
+        // Тест 1: Проверка поддержки WebRTC
+        function checkWebRTCSupport() {
+            log('Проверка поддержки WebRTC...');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showStatus('webrtcStatus', 'WebRTC не поддерживается', 'error');
+                log('WebRTC не поддерживается в этом браузере', 'error');
+                return false;
+            }
+            
+            if (!window.RTCPeerConnection) {
+                showStatus('webrtcStatus', 'RTCPeerConnection не поддерживается', 'error');
+                log('RTCPeerConnection не поддерживается', 'error');
+                return false;
+            }
+            
+            showStatus('webrtcStatus', 'WebRTC поддерживается', 'success');
+            log('WebRTC поддерживается в этом браузере', 'success');
+            return true;
+        }
+        
+        // Тест 2: Получение медиа потоков
+        async function getUserMedia() {
+            try {
+                log('Запрос доступа к камере и микрофону...');
+                
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = localStream;
+                
+                showStatus('mediaStatus', 'Медиа потоки получены успешно', 'success');
+                log('Медиа потоки получены успешно', 'success');
+                log(`Видео треков: ${localStream.getVideoTracks().length}`, 'info');
+                log(`Аудио треков: ${localStream.getAudioTracks().length}`, 'info');
+                
+            } catch (error) {
+                showStatus('mediaStatus', `Ошибка получения медиа: ${error.message}`, 'error');
+                log(`Ошибка получения медиа: ${error.message}`, 'error');
+            }
+        }
+        
+        function stopUserMedia() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = null;
+                
+                showStatus('mediaStatus', 'Медиа потоки остановлены', 'info');
+                log('Медиа потоки остановлены', 'info');
+            }
+        }
+        
+        // Тест 3: Создание Peer Connection
+        function createPeerConnection() {
+            try {
+                log('Создание Peer Connection...');
+                
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { 
+                            urls: 'turn:62.84.126.200:3478', 
+                            username: 'webrtc', 
+                            credential: 'password123' 
+                        }
+                    ]
+                };
+                
+                peerConnection = new RTCPeerConnection(configuration);
+                
+                // Обработчики событий
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        log('ICE кандидат получен', 'info');
+                    }
+                };
+                
+                peerConnection.ontrack = (event) => {
+                    log('Удаленный поток получен', 'success');
+                    const remoteVideo = document.getElementById('remoteVideo');
+                    if (remoteVideo) {
+                        remoteVideo.srcObject = event.streams[0];
+                    }
+                };
+                
+                peerConnection.onconnectionstatechange = () => {
+                    log(`Состояние соединения: ${peerConnection.connectionState}`, 'info');
+                };
+                
+                peerConnection.oniceconnectionstatechange = () => {
+                    log(`ICE состояние: ${peerConnection.iceConnectionState}`, 'info');
+                };
+                
+                // Добавляем локальный поток
+                if (localStream) {
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+                    log('Локальный поток добавлен в Peer Connection', 'success');
+                }
+                
+                showStatus('peerStatus', 'Peer Connection создан успешно', 'success');
+                log('Peer Connection создан успешно', 'success');
+                
+            } catch (error) {
+                showStatus('peerStatus', `Ошибка создания Peer Connection: ${error.message}`, 'error');
+                log(`Ошибка создания Peer Connection: ${error.message}`, 'error');
+            }
+        }
+        
+        function closePeerConnection() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+                showStatus('peerStatus', 'Peer Connection закрыт', 'info');
+                log('Peer Connection закрыт', 'info');
+            }
+        }
+        
+        // Тест 4: Сигналинг
+        function testSignaling() {
+            currentUserId = document.getElementById('userId').value;
+            if (!currentUserId) {
+                showStatus('signalingStatus', 'Введите ID пользователя', 'error');
+                return;
+            }
+            
+            log(`Тест сигналинга для пользователя: ${currentUserId}`);
+            
+            // Проверяем доступность WebSocket сервера для сигналинга
+            const signalingUrl = 'https://lizamsg.ru:3000/api/signaling';
+            
+            fetch(signalingUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'ping',
+                    from: currentUserId,
+                    to: 'test_user_2'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('signalingStatus', 'Сигналинг сервер доступен', 'success');
+                    log('Сигналинг сервер доступен', 'success');
+                } else {
+                    showStatus('signalingStatus', 'Сигналинг сервер недоступен', 'error');
+                    log('Сигналинг сервер недоступен', 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('signalingStatus', `Ошибка сигналинга: ${error.message}`, 'error');
+                log(`Ошибка сигналинга: ${error.message}`, 'error');
+            });
+        }
+        
+        function sendTestSignal() {
+            if (!currentUserId) {
+                showStatus('signalingStatus', 'Сначала выполните тест сигналинга', 'error');
+                return;
+            }
+            
+            log('Отправка тестового сигнала...');
+            
+            const signalingUrl = 'https://lizamsg.ru:3000/api/signaling';
+            
+            fetch(signalingUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'signal',
+                    from: currentUserId,
+                    to: 'test_user_2',
+                    type: 'test',
+                    data: { message: 'Тестовый сигнал' }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('signalingStatus', 'Тестовый сигнал отправлен', 'success');
+                    log('Тестовый сигнал отправлен успешно', 'success');
+                } else {
+                    showStatus('signalingStatus', 'Ошибка отправки сигнала', 'error');
+                    log('Ошибка отправки сигнала', 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('signalingStatus', `Ошибка: ${error.message}`, 'error');
+                log(`Ошибка отправки сигнала: ${error.message}`, 'error');
+            });
+        }
+        
+        // ===== ПОЛНЫЙ WEBRTC ТЕСТ =====
+        
+        // WebRTC конфигурация для полного теста
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { 
+                    urls: 'turn:62.84.126.200:3478',
+                    username: 'lizaapp',
+                    credential: 'lizaapp123'
+                },
+                { 
+                    urls: 'turns:62.84.126.200:3479',
+                    username: 'lizaapp',
+                    credential: 'lizaapp123'
+                }
+            ]
+        };
+        
+        // Объекты пользователей для полного теста
+        let user1 = {
+            id: 'user1',
+            lastSignalId: 0,
+            interval: null,
+            state: 'idle', // idle, connecting, connected, calling
+            targetUser: null,
+            peerConnection: null,
+            localStream: null,
+            log: (msg, type = 'info') => {
+                const time = new Date().toLocaleTimeString();
+                log(`[User1] ${msg}`, type);
+            }
+        };
+        
+        let user2 = {
+            id: 'user2',
+            lastSignalId: 0,
+            interval: null,
+            state: 'idle',
+            targetUser: null,
+            peerConnection: null,
+            localStream: null,
+            log: (msg, type = 'info') => {
+                const time = new Date().toLocaleTimeString();
+                log(`[User2] ${msg}`, type);
+            }
+        };
+        
+        // Функции для User 1
+        async function startUser1() {
+            user1.id = document.getElementById('user1Id').value;
+            if (!user1.id) {
+                showStatus('user1Status', 'Введите ID пользователя 1', 'error');
+                return;
+            }
+            
+            user1.log('Запуск User 1...', 'info');
+            
+            try {
+                // Получаем медиа потоки
+                user1.localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                document.getElementById('localVideo1').srcObject = user1.localStream;
+                user1.log('Медиа потоки получены', 'success');
+                
+                // Включаем кнопки
+                document.getElementById('pingBtn1').disabled = false;
+                showStatus('user1Status', 'User 1 готов к работе', 'success');
+                
+            } catch (error) {
+                user1.log(`Ошибка получения медиа: ${error.message}`, 'error');
+                showStatus('user1Status', `Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        async function sendPing1() {
+            if (user1.state !== 'idle') {
+                user1.log('Игнорируем ping - неправильное состояние', 'warning');
+                return;
+            }
+            
+            user1.state = 'connecting';
+            user1.targetUser = user2.id;
+            user1.log(`Отправка ping к ${user2.id}`, 'info');
+            
+            try {
+                const response = await fetch('https://lizamsg.ru:3000/api/signaling', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'ping',
+                        from: user1.id,
+                        to: user2.id,
+                        data: { timestamp: Date.now() }
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    user1.log('Ping отправлен успешно', 'success');
+                    document.getElementById('offerBtn1').disabled = false;
+                } else {
+                    user1.log('Ошибка отправки ping', 'error');
+                    user1.state = 'idle';
+                }
+            } catch (error) {
+                user1.log(`Ошибка ping: ${error.message}`, 'error');
+                user1.state = 'idle';
+            }
+        }
+        
+        async function testOffer1() {
+            if (user1.state !== 'connecting') {
+                user1.log('Игнорируем offer - неправильное состояние', 'warning');
+                return;
+            }
+            
+            user1.log('Создание Peer Connection...', 'info');
+            
+            try {
+                // Создаем Peer Connection
+                user1.peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Добавляем локальный поток
+                user1.localStream.getTracks().forEach(track => {
+                    user1.peerConnection.addTrack(track, user1.localStream);
+                });
+                
+                // Обработчики событий
+                user1.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        sendSignal(user1.id, user2.id, 'ice-candidate', event.candidate);
+                    }
+                };
+                
+                user1.peerConnection.ontrack = (event) => {
+                    user1.log('Получен удаленный поток', 'success');
+                    document.getElementById('remoteVideo1').srcObject = event.streams[0];
+                };
+                
+                // Создаем offer
+                const offer = await user1.peerConnection.createOffer();
+                await user1.peerConnection.setLocalDescription(offer);
+                
+                user1.log('Offer создан, отправка...', 'info');
+                
+                // Отправляем offer
+                await sendSignal(user1.id, user2.id, 'offer', offer);
+                
+                user1.state = 'calling';
+                document.getElementById('disconnectBtn1').disabled = false;
+                user1.log('Offer отправлен, ожидание answer', 'success');
+                
+            } catch (error) {
+                user1.log(`Ошибка создания offer: ${error.message}`, 'error');
+                user1.state = 'idle';
+            }
+        }
+        
+        function disconnectCall1() {
+            if (user1.peerConnection) {
+                user1.peerConnection.close();
+                user1.peerConnection = null;
+            }
+            
+            if (user1.localStream) {
+                user1.localStream.getTracks().forEach(track => track.stop());
+            }
+            
+            user1.state = 'idle';
+            user1.targetUser = null;
+            
+            document.getElementById('offerBtn1').disabled = true;
+            document.getElementById('disconnectBtn1').disabled = true;
+            
+            user1.log('Соединение разорвано', 'warning');
+            showStatus('user1Status', 'Соединение разорвано', 'warning');
+        }
+        
+        // Функции для User 2
+        async function startUser2() {
+            user2.id = document.getElementById('user2Id').value;
+            if (!user2.id) {
+                showStatus('user2Status', 'Введите ID пользователя 2', 'error');
+                return;
+            }
+            
+            user2.log('Запуск User 2...', 'info');
+            
+            try {
+                // Получаем медиа потоки
+                user2.localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                document.getElementById('localVideo2').srcObject = user2.localStream;
+                user2.log('Медиа потоки получены', 'success');
+                
+                // Включаем кнопки
+                document.getElementById('pingBtn2').disabled = false;
+                showStatus('user2Status', 'User 2 готов к работе', 'success');
+                
+            } catch (error) {
+                user2.log(`Ошибка получения медиа: ${error.message}`, 'error');
+                showStatus('user2Status', `Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        async function sendPing2() {
+            if (user2.state !== 'idle') {
+                user2.log('Игнорируем ping - неправильное состояние', 'warning');
+                return;
+            }
+            
+            user2.state = 'connecting';
+            user2.targetUser = user1.id;
+            user2.log(`Отправка ping к ${user1.id}`, 'info');
+            
+            try {
+                const response = await fetch('https://lizamsg.ru:3000/api/signaling', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'ping',
+                        from: user2.id,
+                        to: user1.id,
+                        data: { timestamp: Date.now() }
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    user2.log('Ping отправлен успешно', 'success');
+                    document.getElementById('answerBtn2').disabled = false;
+                } else {
+                    user2.log('Ошибка отправки ping', 'error');
+                    user2.state = 'idle';
+                }
+            } catch (error) {
+                user2.log(`Ошибка ping: ${error.message}`, 'error');
+                user2.state = 'idle';
+            }
+        }
+        
+        async function testAnswer2() {
+            if (user2.state !== 'connecting') {
+                user2.log('Игнорируем answer - неправильное состояние', 'warning');
+                return;
+            }
+            
+            user2.log('Создание Peer Connection...', 'info');
+            
+            try {
+                // Создаем Peer Connection
+                user2.peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Добавляем локальный поток
+                user2.localStream.getTracks().forEach(track => {
+                    user2.peerConnection.addTrack(track, user2.localStream);
+                });
+                
+                // Обработчики событий
+                user2.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        sendSignal(user2.id, user1.id, 'ice-candidate', event.candidate);
+                    }
+                };
+                
+                user2.peerConnection.ontrack = (event) => {
+                    user2.log('Получен удаленный поток', 'success');
+                    document.getElementById('remoteVideo2').srcObject = event.streams[0];
+                };
+                
+                // Создаем answer
+                const answer = await user2.peerConnection.createAnswer();
+                await user2.peerConnection.setLocalDescription(answer);
+                
+                user2.log('Answer создан, отправка...', 'info');
+                
+                // Отправляем answer
+                await sendSignal(user2.id, user1.id, 'answer', answer);
+                
+                user2.state = 'calling';
+                document.getElementById('disconnectBtn2').disabled = false;
+                user2.log('Answer отправлен, соединение установлено', 'success');
+                
+            } catch (error) {
+                user2.log(`Ошибка создания answer: ${error.message}`, 'error');
+                user2.state = 'idle';
+            }
+        }
+        
+        function disconnectCall2() {
+            if (user2.peerConnection) {
+                user2.peerConnection.close();
+                user2.peerConnection = null;
+            }
+            
+            if (user2.localStream) {
+                user2.localStream.getTracks().forEach(track => track.stop());
+            }
+            
+            user2.state = 'idle';
+            user2.targetUser = null;
+            
+            document.getElementById('answerBtn2').disabled = true;
+            document.getElementById('disconnectBtn2').disabled = true;
+            
+            user2.log('Соединение разорвано', 'warning');
+            showStatus('user2Status', 'Соединение разорвано', 'warning');
+        }
+        
+        // Общие функции
+        async function sendSignal(from, to, type, data) {
+            try {
+                const response = await fetch('https://lizamsg.ru:3000/api/signaling', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: from,
+                        to: to,
+                        type: type,
+                        data: data
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`Сигнал ${type} отправлен от ${from} к ${to}`, 'success');
+                } else {
+                    log(`Ошибка отправки сигнала ${type}`, 'error');
+                }
+            } catch (error) {
+                log(`Ошибка отправки сигнала: ${error.message}`, 'error');
+            }
+        }
+        
+        function copyAllLogs() {
+            const logContent = document.getElementById('log').innerText;
+            navigator.clipboard.writeText(logContent).then(() => {
+                log('Логи скопированы в буфер обмена', 'success');
+            });
+        }
+        
+        function resetAllUsers() {
+            disconnectCall1();
+            disconnectCall2();
+            
+            // Сброс состояний
+            user1.state = 'idle';
+            user2.state = 'idle';
+            
+            // Сброс кнопок
+            document.getElementById('pingBtn1').disabled = true;
+            document.getElementById('offerBtn1').disabled = true;
+            document.getElementById('disconnectBtn1').disabled = true;
+            document.getElementById('pingBtn2').disabled = true;
+            document.getElementById('answerBtn2').disabled = true;
+            document.getElementById('disconnectBtn2').disabled = true;
+            
+            // Очистка видео
+            document.getElementById('localVideo1').srcObject = null;
+            document.getElementById('remoteVideo1').srcObject = null;
+            document.getElementById('localVideo2').srcObject = null;
+            document.getElementById('remoteVideo2').srcObject = null;
+            
+            log('Все пользователи сброшены', 'info');
+        }
+        
+        // Автоматическая проверка при загрузке
+        window.onload = function() {
+            log('Страница загружена, начинаем тестирование...');
+            checkWebRTCSupport();
+        };
+    </script>
+</body>
+</html>

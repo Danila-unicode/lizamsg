@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Server Actions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .log { border: 1px solid #ddd; padding: 10px; margin-top: 10px; height: 400px; overflow-y: scroll; background-color: #f9f9f9; font-family: monospace; font-size: 12px; }
+        .log-entry { margin-bottom: 5px; padding: 3px; border-radius: 3px; }
+        .log-entry.info { color: #0056b3; }
+        .log-entry.warning { color: #ffc107; }
+        .log-entry.error { color: #dc3545; }
+        .log-entry.success { color: #28a745; }
+        button { padding: 10px; margin-right: 10px; border-radius: 5px; border: 1px solid #ddd; background-color: #007bff; color: white; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Server Actions</h1>
+        <p>Проверяем, какие действия поддерживает Yandex Cloud Functions.</p>
+        
+        <div>
+            <button onclick="testAction('signals')">Test: signals</button>
+            <button onclick="testAction('send')">Test: send</button>
+            <button onclick="testAction('join')">Test: join</button>
+            <button onclick="testAction('leave')">Test: leave</button>
+            <button onclick="testAction('ping')">Test: ping</button>
+            <button onclick="testAction('pong')">Test: pong</button>
+        </div>
+        
+        <div class="log" id="log">
+            <div class="log-entry info">[Система] Готов к тестированию действий сервера.</div>
+        </div>
+    </div>
+
+    <script>
+        const SIGNALING_SERVER = 'https://lizamsg.ru:3000/api/signaling';
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        async function testAction(action) {
+            try {
+                log(`🧪 Тестируем действие: ${action}`, 'info');
+                
+                let response;
+                if (action === 'signals') {
+                    // GET запрос для signals
+                    response = await fetch(`${SIGNALING_SERVER}?action=${action}&userId=user1&since=0`);
+                } else {
+                    // POST запрос для остальных действий
+                    response = await fetch(SIGNALING_SERVER, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: action,
+                            from: 'user1',
+                            to: 'user12',
+                            type: 'test',
+                            data: { test: true }
+                        })
+                    });
+                }
+                
+                const result = await response.json();
+                log(`📡 Ответ сервера для ${action}: ${JSON.stringify(result)}`, result.success ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Ошибка тестирования ${action}: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

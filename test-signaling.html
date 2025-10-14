@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест сигналинг сервера</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-entry.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .log-entry.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .log-entry.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест сигналинг сервера</h1>
+        
+        <div>
+            <h3>Отправка сигнала</h3>
+            <input type="text" id="fromUser" placeholder="От пользователя" value="user1">
+            <input type="text" id="toUser" placeholder="К пользователю" value="user2">
+            <select id="signalType">
+                <option value="offer">offer</option>
+                <option value="answer">answer</option>
+                <option value="ice-candidate">ice-candidate</option>
+                <option value="call-ended">call-ended</option>
+            </select>
+            <input type="text" id="signalData" placeholder="Данные сигнала" value='{"sdp":"test-sdp","type":"offer"}'>
+            <button class="btn" onclick="sendSignal()">Отправить сигнал</button>
+        </div>
+        
+        <div>
+            <h3>Проверка сигналов</h3>
+            <input type="text" id="checkUser" placeholder="ID пользователя" value="user2">
+            <input type="number" id="sinceId" placeholder="С ID" value="0">
+            <button class="btn" onclick="checkSignals()">Проверить сигналы</button>
+        </div>
+        
+        <div>
+            <h3>Статус сервера</h3>
+            <button class="btn" onclick="checkStatus()">Проверить статус</button>
+        </div>
+        
+        <div class="log" id="log">
+            <div class="log-entry info">[Система] Готов к тестированию</div>
+        </div>
+    </div>
+
+    <script>
+        const SIGNALING_SERVER = 'api/signaling_server.php';
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        async function sendSignal() {
+            const from = document.getElementById('fromUser').value;
+            const to = document.getElementById('toUser').value;
+            const type = document.getElementById('signalType').value;
+            const dataStr = document.getElementById('signalData').value;
+            
+            try {
+                const data = JSON.parse(dataStr);
+                
+                const response = await fetch(SIGNALING_SERVER, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'signal',
+                        from: from,
+                        to: to,
+                        type: type,
+                        data: data
+                    })
+                });
+                
+                const result = await response.json();
+                log(`Отправка сигнала: ${JSON.stringify(result)}`, result.success ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`Ошибка отправки: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkSignals() {
+            const userId = document.getElementById('checkUser').value;
+            const since = document.getElementById('sinceId').value;
+            
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&userId=${userId}&since=${since}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`Проверка сигналов: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+                
+                if (data.success && data.signals) {
+                    data.signals.forEach(signal => {
+                        log(`  - ${signal.type} от ${signal.from} (ID: ${signal.id})`, 'info');
+                    });
+                }
+                
+            } catch (error) {
+                log(`Ошибка проверки: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkStatus() {
+            try {
+                const url = `${SIGNALING_SERVER}?action=status`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`Статус сервера: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`Ошибка проверки статуса: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автоматическая проверка статуса при загрузке
+        window.addEventListener('load', () => {
+            checkStatus();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест кнопок</title>
+</head>
+<body>
+    <h1>Тест кнопок</h1>
+    <button onclick="testFunction()">Тест кнопки</button>
+    <div id="result"></div>
+    
+    <script>
+        function testFunction() {
+            document.getElementById('result').innerHTML = 'Кнопка работает! Время: ' + new Date().toLocaleTimeString();
+            console.log('Кнопка нажата!');
+        }
+        
+        console.log('Скрипт загружен');
+    </script>
+</body>
+</html>

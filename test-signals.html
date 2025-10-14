@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест получения сигналов</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .warning { background: #fff3cd; }
+        .info { background: #d1ecf1; }
+    </style>
+</head>
+<body>
+    <h1>📡 Тест получения сигналов</h1>
+    
+    <div>
+        <label>User ID: <input type="text" id="userId" value="user12" style="width: 100px;"></label>
+        <button onclick="startPolling()">Начать проверку</button>
+        <button onclick="stopPolling()">Остановить</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        const SIGNALING_SERVER = 'https://functions.yandexcloud.net/d4ec0rusp5blvc9pucd4';
+        let pollingInterval = null;
+        let lastSignalId = 0;
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        async function checkSignals() {
+            const userId = document.getElementById('userId').value;
+            
+            try {
+                const url = `${SIGNALING_SERVER}?action=signals&userId=${userId}&since=${lastSignalId}`;
+                addResult(`🔍 Проверяем сигналы для ${userId}...`, 'info');
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                addResult(`📡 Ответ сервера: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.success && data.signals && data.signals.length > 0) {
+                    addResult(`✅ Получено ${data.signals.length} сигналов`, 'success');
+                    
+                    data.signals.forEach(signal => {
+                        addResult(`📨 Сигнал: ${signal.type} от ${signal.from} к ${signal.to}`, 'success');
+                        lastSignalId = Math.max(lastSignalId, signal.id);
+                    });
+                } else {
+                    addResult(`ℹ️ Нет новых сигналов`, 'info');
+                }
+            } catch (error) {
+                addResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        function startPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            addResult('🚀 Начинаем проверку сигналов...', 'success');
+            pollingInterval = setInterval(checkSignals, 2000);
+        }
+        
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                addResult('⏹️ Проверка остановлена', 'warning');
+            }
+        }
+        
+        // Автоматически начинаем проверку
+        window.addEventListener('load', () => {
+            addResult('📋 Тест готов. Нажмите "Начать проверку"', 'info');
+        });
+    </script>
+</body>
+</html>

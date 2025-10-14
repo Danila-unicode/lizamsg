@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Тест Звонков</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .video-container {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .video-wrapper {
+            flex: 1;
+            text-align: center;
+        }
+
+        video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.connecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .connection-status.connected {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .connection-status.connecting {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .connection-status.disconnected {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 WebRTC Тест Звонков</h1>
+        
+        <div class="status disconnected" id="connectionStatus">
+            Статус: Отключен
+        </div>
+
+        <div class="form-group">
+            <label for="userId">ID пользователя:</label>
+            <input type="text" id="userId" value="user1" placeholder="Введите ID пользователя">
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="initWebRTC()">Инициализировать WebRTC</button>
+            <button class="btn btn-success" onclick="startCall()" id="startCallBtn" disabled>Начать звонок</button>
+            <button class="btn btn-danger" onclick="endCall()" id="endCallBtn" disabled>Завершить звонок</button>
+        </div>
+
+        <div class="video-container">
+            <div class="video-wrapper">
+                <h3>Локальное видео</h3>
+                <video id="localVideo" autoplay muted></video>
+            </div>
+            <div class="video-wrapper">
+                <h3>Удаленное видео</h3>
+                <video id="remoteVideo" autoplay></video>
+            </div>
+        </div>
+
+        <div class="log" id="log">
+            <div>Лог событий:</div>
+        </div>
+    </div>
+
+    <script>
+        // WebRTC конфигурация
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { 
+                    urls: 'turn:62.84.126.200:3478', 
+                    username: 'webrtc', 
+                    credential: 'password123' 
+                },
+                { 
+                    urls: 'turns:62.84.126.200:3479', 
+                    username: 'webrtc', 
+                    credential: 'password123' 
+                }
+            ]
+        };
+
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let currentUserId = null;
+        let isConnected = false;
+
+        // Логирование
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logElement.innerHTML += `<div>[${time}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        // Обновление статуса
+        function updateStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = `Статус: ${status === 'connected' ? 'Подключен' : 
+                                                      status === 'connecting' ? 'Подключение...' : 'Отключен'}`;
+        }
+
+        // Инициализация WebRTC
+        async function initWebRTC() {
+            try {
+                currentUserId = document.getElementById('userId').value;
+                if (!currentUserId) {
+                    alert('Введите ID пользователя');
+                    return;
+                }
+
+                log('Инициализация WebRTC...');
+                updateStatus('connecting');
+
+                // Получаем медиа потоки
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+                document.getElementById('localVideo').srcObject = localStream;
+                log('Локальный поток получен');
+
+                // Создаем peer connection
+                peerConnection = new RTCPeerConnection(configuration);
+                log('Peer connection создан');
+
+                // Добавляем локальный поток
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Обработчики событий
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        log('ICE кандидат: ' + event.candidate.candidate);
+                    }
+                };
+
+                peerConnection.ontrack = (event) => {
+                    log('Получен удаленный поток');
+                    remoteStream = event.streams[0];
+                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                };
+
+                peerConnection.onconnectionstatechange = () => {
+                    log('Состояние соединения: ' + peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'connected') {
+                        isConnected = true;
+                        updateStatus('connected');
+                        document.getElementById('startCallBtn').disabled = true;
+                        document.getElementById('endCallBtn').disabled = false;
+                    } else if (peerConnection.connectionState === 'disconnected') {
+                        isConnected = false;
+                        updateStatus('disconnected');
+                        document.getElementById('startCallBtn').disabled = false;
+                        document.getElementById('endCallBtn').disabled = true;
+                    }
+                };
+
+                updateStatus('connected');
+                document.getElementById('startCallBtn').disabled = false;
+                log('WebRTC инициализирован успешно');
+
+            } catch (error) {
+                log('Ошибка инициализации: ' + error.message);
+                updateStatus('disconnected');
+            }
+        }
+
+        // Начать звонок
+        async function startCall() {
+            try {
+                log('Начинаем звонок...');
+                
+                // Создаем offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                log('Offer создан: ' + offer.type);
+                
+                // Здесь должен быть сигналинг для отправки offer другому пользователю
+                // Пока просто логируем
+                log('Offer должен быть отправлен через сигналинг сервер');
+                
+            } catch (error) {
+                log('Ошибка начала звонка: ' + error.message);
+            }
+        }
+
+        // Завершить звонок
+        function endCall() {
+            try {
+                log('Завершаем звонок...');
+                
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+                
+                document.getElementById('localVideo').srcObject = null;
+                document.getElementById('remoteVideo').srcObject = null;
+                
+                isConnected = false;
+                updateStatus('disconnected');
+                document.getElementById('startCallBtn').disabled = false;
+                document.getElementById('endCallBtn').disabled = true;
+                
+                log('Звонок завершен');
+                
+            } catch (error) {
+                log('Ошибка завершения звонка: ' + error.message);
+            }
+        }
+
+        // Проверка поддержки WebRTC
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            log('WebRTC не поддерживается в этом браузере');
+        } else {
+            log('WebRTC поддерживается');
+        }
+    </script>
+</body>
+</html>

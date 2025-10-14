@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Contacts App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔧 Debug Contacts App</h1>
+        
+        <button onclick="testAuth()">Тест авторизации</button>
+        <button onclick="testWebRTC()">Тест WebRTC</button>
+        <button onclick="testButtons()">Тест кнопок</button>
+        <button onclick="clearLog()">Очистить лог</button>
+        
+        <div id="log" class="log">Лог будет здесь...</div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = 'Лог очищен...\n';
+        }
+
+        async function testAuth() {
+            log('🔄 Тестируем авторизацию...', 'info');
+            try {
+                const response = await fetch('api/check_auth.php');
+                const data = await response.json();
+                log(`✅ Авторизация: ${JSON.stringify(data)}`, 'success');
+                
+                if (data.success && data.user) {
+                    log(`👤 Пользователь: ${data.user.phone} (ID: ${data.user.id})`, 'success');
+                    return data.user;
+                } else {
+                    log('❌ Не авторизован', 'error');
+                    return null;
+                }
+            } catch (error) {
+                log(`❌ Ошибка авторизации: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function testWebRTC() {
+            log('🔄 Тестируем WebRTC...', 'info');
+            
+            // Проверяем поддержку
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                log('❌ WebRTC не поддерживается', 'error');
+                return false;
+            }
+            log('✅ WebRTC поддерживается', 'success');
+            
+            // Проверяем RTCPeerConnection
+            if (!window.RTCPeerConnection) {
+                log('❌ RTCPeerConnection недоступен', 'error');
+                return false;
+            }
+            log('✅ RTCPeerConnection доступен', 'success');
+            
+            // Пробуем получить медиа потоки
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                log('✅ Медиа потоки получены', 'success');
+                stream.getTracks().forEach(track => {
+                    log(`📹 Трек: ${track.kind} (enabled: ${track.enabled})`, 'info');
+                });
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            } catch (error) {
+                log(`❌ Ошибка получения медиа: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function testButtons() {
+            log('🔄 Тестируем кнопки...', 'info');
+            
+            // Проверяем, есть ли элементы
+            const userInfo = document.getElementById('userInfo');
+            if (userInfo) {
+                log('✅ Элемент userInfo найден', 'success');
+            } else {
+                log('❌ Элемент userInfo не найден', 'error');
+            }
+            
+            // Проверяем функции
+            if (typeof logout === 'function') {
+                log('✅ Функция logout определена', 'success');
+            } else {
+                log('❌ Функция logout не определена', 'error');
+            }
+            
+            if (typeof showTab === 'function') {
+                log('✅ Функция showTab определена', 'success');
+            } else {
+                log('❌ Функция showTab не определена', 'error');
+            }
+        }
+
+        // Автоматический тест при загрузке
+        window.addEventListener('load', async () => {
+            log('🚀 Страница загружена', 'info');
+            log('🔄 Запускаем автоматические тесты...', 'info');
+            
+            const user = await testAuth();
+            await testWebRTC();
+            testButtons();
+            
+            if (user) {
+                log(`🎯 Готов к тестированию как ${user.phone}`, 'success');
+            } else {
+                log('⚠️ Нужна авторизация', 'warning');
+            }
+        });
+    </script>
+</body>
+</html>

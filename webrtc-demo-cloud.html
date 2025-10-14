@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Звонки - Yandex Cloud</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .user-section {
+            text-align: center;
+        }
+
+        .user-input {
+            margin-bottom: 20px;
+        }
+
+        .user-input input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .user-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .status.connected {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .status.connecting {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .status.disconnected {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .video-section {
+            text-align: center;
+        }
+
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .video-wrapper {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+        }
+
+        .video-wrapper h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        video {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .log-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-entry.info {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .log-entry.success {
+            background: rgba(46, 204, 113, 0.2);
+        }
+
+        .log-entry.error {
+            background: rgba(231, 76, 60, 0.2);
+        }
+
+        .log-entry.warning {
+            background: rgba(241, 196, 15, 0.2);
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .connection-status.connected {
+            background: #27ae60;
+            color: white;
+        }
+
+        .connection-status.connecting {
+            background: #f39c12;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .cloud-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .cloud-info h3 {
+            margin-bottom: 10px;
+        }
+
+        .cloud-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .video-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .call-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔊 WebRTC Звонки - Yandex Cloud</h1>
+            <p>Демонстрация видеозвонков с облачным сигналингом</p>
+        </div>
+
+        <div class="cloud-info">
+            <h3>☁️ Облачная инфраструктура</h3>
+            <p><strong>HTTP сигналинг:</strong> Yandex Cloud Functions</p>
+            <p><strong>TURN сервер:</strong> VK Cloud (62.84.126.200:3478)</p>
+            <p><strong>STUN сервер:</strong> Google STUN</p>
+            <p><strong>Тестовые пользователи:</strong> ID 1 (+79182725362), ID 12 (+79182725363)</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card user-section">
+                <h2>👤 Настройка пользователя</h2>
+                
+                <div class="user-input">
+                    <input type="text" id="userId" placeholder="Введите ваш ID (например: 1)" value="1">
+                </div>
+                
+                <div class="user-input">
+                    <input type="text" id="targetUserId" placeholder="Введите ID собеседника (например: 12)" value="12">
+                </div>
+                
+                <button class="btn btn-primary" onclick="initWebRTC()">Инициализировать WebRTC</button>
+                
+                <div class="status disconnected" id="connectionStatus">
+                    Статус: Отключен
+                </div>
+            </div>
+
+            <div class="card video-section">
+                <h2>📹 Видео звонок</h2>
+                
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        <h3>Ваше видео</h3>
+                        <video id="localVideo" autoplay muted></video>
+                    </div>
+                    <div class="video-wrapper">
+                        <h3>Удаленное видео</h3>
+                        <video id="remoteVideo" autoplay></video>
+                    </div>
+                </div>
+                
+                <div class="call-controls">
+                    <button class="btn btn-success" onclick="startCall()" id="startCallBtn" disabled>📞 Начать звонок</button>
+                    <button class="btn btn-danger" onclick="endCall()" id="endCallBtn" disabled>📴 Завершить звонок</button>
+                </div>
+            </div>
+
+            <div class="card log-section">
+                <h2>📋 Лог событий</h2>
+                <div class="log" id="log">
+                    <div class="log-entry info">[Система] WebRTC демо готов к работе с Yandex Cloud</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/webrtc-http.js"></script>
+    <script>
+        let isInitialized = false;
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let isConnected = false;
+        let signalCheckInterval = null;
+        let currentUserId = null;
+
+        // Логирование с цветовой кодировкой
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Обновление статуса
+        function updateStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = `Статус: ${status === 'connected' ? 'Подключен' : 
+                                                      status === 'connecting' ? 'Подключение...' : 'Отключен'}`;
+        }
+
+        // Инициализация WebRTC
+        async function initWebRTC() {
+            try {
+                const userId = document.getElementById('userId').value;
+                const targetUserId = document.getElementById('targetUserId').value;
+                
+                if (!userId || !targetUserId) {
+                    log('Введите ID пользователя и собеседника', 'error');
+                    return;
+                }
+
+                log('Инициализация WebRTC с Yandex Cloud...', 'info');
+                updateStatus('connecting');
+
+                // Инициализируем HTTP сигналинг
+                currentUserId = userId;
+                window.initHttpSignaling(userId);
+                
+                // Получаем медиа потоки
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+                document.getElementById('localVideo').srcObject = localStream;
+                log('Локальный поток получен', 'success');
+
+                // Создаем peer connection с правильными ICE серверами
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { 
+                            urls: 'turn:62.84.126.200:3478', 
+                            username: 'webrtc', 
+                            credential: 'password123' 
+                        },
+                        { 
+                            urls: 'turns:62.84.126.200:3479', 
+                            username: 'webrtc', 
+                            credential: 'password123' 
+                        }
+                    ]
+                });
+
+                // Добавляем локальный поток
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Обработчики событий
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        log('ICE кандидат: ' + event.candidate.candidate, 'info');
+                    }
+                };
+
+                peerConnection.ontrack = (event) => {
+                    log('Получен удаленный поток', 'success');
+                    remoteStream = event.streams[0];
+                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                };
+
+                peerConnection.onconnectionstatechange = () => {
+                    log('Состояние соединения: ' + peerConnection.connectionState, 'info');
+                    if (peerConnection.connectionState === 'connected') {
+                        isConnected = true;
+                        updateStatus('connected');
+                        document.getElementById('startCallBtn').disabled = true;
+                        document.getElementById('endCallBtn').disabled = false;
+                    } else if (peerConnection.connectionState === 'disconnected') {
+                        isConnected = false;
+                        updateStatus('disconnected');
+                        document.getElementById('startCallBtn').disabled = false;
+                        document.getElementById('endCallBtn').disabled = true;
+                    }
+                };
+
+                log('Peer connection создан', 'success');
+
+                // Инициализируем сигналинг через Yandex Cloud Functions
+                const initialized = await initSignaling();
+                if (initialized) {
+                    isInitialized = true;
+                    updateStatus('connected');
+                    document.getElementById('startCallBtn').disabled = false;
+                    log('WebRTC инициализирован успешно с Yandex Cloud', 'success');
+                } else {
+                    log('Ошибка инициализации сигналинга', 'error');
+                    updateStatus('disconnected');
+                }
+
+            } catch (error) {
+                log('Ошибка инициализации: ' + error.message, 'error');
+                updateStatus('disconnected');
+            }
+        }
+
+        // Начать звонок
+        async function startCall() {
+            try {
+                if (!isInitialized) {
+                    log('Сначала инициализируйте WebRTC', 'warning');
+                    return;
+                }
+
+                log('Начинаем звонок через Yandex Cloud...', 'info');
+                
+                // Создаем offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                log('Offer создан: ' + offer.type, 'success');
+                
+                // Отправляем offer через Yandex Cloud Functions
+                const targetUserId = document.getElementById('targetUserId').value;
+                const success = await sendSignal(targetUserId, 'offer', offer);
+                
+                if (success) {
+                    document.getElementById('startCallBtn').disabled = true;
+                    document.getElementById('endCallBtn').disabled = false;
+                    log('Offer отправлен через Yandex Cloud', 'success');
+                } else {
+                    log('Ошибка отправки offer', 'error');
+                }
+                
+            } catch (error) {
+                log('Ошибка начала звонка: ' + error.message, 'error');
+            }
+        }
+
+        // Завершить звонок
+        async function endCall() {
+            try {
+                log('Завершаем звонок...', 'info');
+                
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+                
+                document.getElementById('localVideo').srcObject = null;
+                document.getElementById('remoteVideo').srcObject = null;
+                
+                // Останавливаем сигналинг
+                stopSignalPolling();
+                
+                // Останавливаем проверку сигналов
+                if (signalCheckInterval) {
+                    clearInterval(signalCheckInterval);
+                    signalCheckInterval = null;
+                }
+                
+                isInitialized = false;
+                isConnected = false;
+                updateStatus('disconnected');
+                document.getElementById('startCallBtn').disabled = false;
+                document.getElementById('endCallBtn').disabled = true;
+                
+                log('Звонок завершен', 'success');
+                
+            } catch (error) {
+                log('Ошибка завершения звонка: ' + error.message, 'error');
+            }
+        }
+
+        // Обработка входящих сигналов
+        async function handleIncomingSignal(signal) {
+            try {
+                log('Получен сигнал: ' + signal.type + ' от ' + signal.from, 'info');
+                
+                if (signal.type === 'offer' && signal.from !== currentUserId) {
+                    // Получили offer - создаем answer
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    
+                    // Отправляем answer через Yandex Cloud Functions
+                    await sendSignal(signal.from, 'answer', answer);
+                    
+                    log('Answer отправлен через Yandex Cloud', 'success');
+                    
+                } else if (signal.type === 'answer') {
+                    // Получили answer
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.data));
+                    log('Answer получен и установлен', 'success');
+                    
+                } else if (signal.type === 'ice-candidate') {
+                    // Получили ICE кандидат
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(signal.data));
+                    log('ICE кандидат добавлен', 'info');
+                }
+                
+            } catch (error) {
+                log('Ошибка обработки сигнала: ' + error.message, 'error');
+            }
+        }
+
+        // Переопределяем функцию обработки сигналов из webrtc-http.js
+        window.handleWebRTCSignal = handleIncomingSignal;
+
+        // Проверка поддержки WebRTC
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            log('WebRTC не поддерживается в этом браузере', 'error');
+        } else {
+            log('WebRTC поддерживается', 'success');
+        }
+
+        // Обработка закрытия страницы
+        window.addEventListener('beforeunload', () => {
+            if (isInitialized) {
+                endCall();
+            }
+        });
+    </script>
+</body>
+</html>

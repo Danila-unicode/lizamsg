@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="avtr/css/avatar-styles.css">
     <link rel="stylesheet" href="avtr/css/password-styles.css">
-    <link rel="stylesheet" href="avtr/css/profile-styles.css">
+    <link rel="stylesheet" href="avtr/css/profile-styles.css?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script>
         // Переменные для аватара
@@ -319,6 +319,90 @@
             statusInput.focus();
             statusInput.select();
         }
+        
+        // Мобильная функция переключения статуса
+        function toggleMobileStatus() {
+            const statusDisplay = document.getElementById('userStatus');
+            const statusEdit = document.getElementById('statusEdit');
+            const statusInput = document.getElementById('statusInput');
+            const mobileBtn = document.getElementById('mobileStatusBtn');
+            
+            if (statusEdit.style.display === 'none' || statusEdit.style.display === '') {
+                // Переключаемся в режим редактирования
+                statusDisplay.parentElement.style.display = 'none';
+                statusEdit.style.display = 'flex';
+                statusInput.value = statusDisplay.textContent;
+                statusInput.focus();
+                statusInput.select();
+                
+                // Меняем кнопку на "Сохранить"
+                mobileBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
+                mobileBtn.onclick = saveMobileStatus;
+            } else {
+                // Сохраняем изменения
+                saveMobileStatus();
+            }
+        }
+        
+        // Мобильная функция сохранения
+        function saveMobileStatus() {
+            const statusInput = document.getElementById('statusInput');
+            const newStatus = statusInput.value.trim();
+            
+            if (!newStatus) {
+                showNotification('Статус не может быть пустым', 'error');
+                return;
+            }
+            
+            // Получаем ID пользователя
+            const userData = localStorage.getItem('userData');
+            let userId = null;
+            if (userData) {
+                const data = JSON.parse(userData);
+                userId = data.userId;
+            }
+            
+            if (!userId) {
+                showNotification('Ошибка: ID пользователя не найден', 'error');
+                return;
+            }
+            
+            // Отправляем запрос на обновление статуса
+            fetch('avtr/api/update_status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `user_id=${userId}&user_status=${encodeURIComponent(newStatus)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем отображение статуса
+                    document.getElementById('userStatus').textContent = newStatus;
+                    
+                    // Возвращаемся к режиму просмотра
+                    const statusDisplay = document.getElementById('userStatus');
+                    const statusEdit = document.getElementById('statusEdit');
+                    const mobileBtn = document.getElementById('mobileStatusBtn');
+                    
+                    statusDisplay.parentElement.style.display = 'flex';
+                    statusEdit.style.display = 'none';
+                    
+                    // Меняем кнопку обратно на "Изменить"
+                    mobileBtn.innerHTML = '<i class="fas fa-edit"></i> Изменить';
+                    mobileBtn.onclick = toggleMobileStatus;
+                    
+                    showNotification('Статус успешно обновлен!', 'success');
+                } else {
+                    showNotification('Ошибка обновления статуса: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка сети:', error);
+                showNotification('Ошибка сети при обновлении статуса', 'error');
+            });
+        }
 
         function cancelStatusEdit() {
             const statusDisplay = document.getElementById('userStatus');
@@ -549,6 +633,13 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                </div>
+                
+                <!-- Мобильные кнопки для статуса -->
+                <div class="mobile-status-buttons">
+                    <button class="mobile-status-btn" id="mobileStatusBtn" onclick="toggleMobileStatus()">
+                        <i class="fas fa-edit"></i> Изменить
+                    </button>
                 </div>
             </div>
         </div>

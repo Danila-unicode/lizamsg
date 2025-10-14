@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Видеозвонки - LizaApp</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .user-section { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 8px; background: #fafafa; }
+        .log { background: #f5f5f5; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .info { color: blue; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; font-weight: bold; }
+        .status.connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.disconnected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.connecting { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        
+        /* Стили для системы друзей */
+        .friends-section { margin: 20px 0; }
+        .search-section { margin: 15px 0; }
+        .search-results { margin: 10px 0; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; background: #f9f9f9; }
+        .user-item .username { font-weight: bold; }
+        .user-item .actions { display: flex; gap: 5px; }
+        .friends-list, .requests-list, .sent-requests-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0; background: #fafafa; }
+        .friend-item, .request-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #eee; margin: 3px 0; border-radius: 3px; background: white; }
+        .friend-item .username, .request-item .username { font-weight: bold; }
+        .friend-item .actions, .request-item .actions { display: flex; gap: 5px; }
+        .btn-small { padding: 5px 10px; font-size: 12px; }
+        .btn-success { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-secondary { background: #2196F3; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        
+        /* Скрытие старых элементов */
+        .old-functionality { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📞 Видеозвонки LizaApp</h1>
+        <p><strong>Инструкция:</strong> Войдите под своим логином и позвоните другому пользователю. Второй пользователь должен открыть эту же страницу на другом устройстве.</p>
+        <button onclick="window.open('https://lizaapp.wg01.ru/register.php', '_blank')" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 10px 0; border: none; border-radius: 5px; cursor: pointer;">Создать аккаунт</button>
+        
+        <div class="user-section">
+            <h2>👤 Ваш профиль</h2>
+            <div id="loginSection">
+                <input type="text" id="userId" value="" placeholder="Введите ваш логин">
+                <input type="password" id="userPassword" value="" placeholder="Введите пароль" style="display: none;">
+                <button onclick="showPasswordField(event)">Войти</button>
+        </div>
+            
+            <div id="userInfo" style="display: none;">
+                <div id="userStatus" class="status disconnected">Отключен</div>
+                <p><strong>Логин:</strong> <span id="currentUserId"></span></p>
+                <input type="text" id="targetUserId" value="" placeholder="Введите логин собеседника" class="old-functionality">
+                <button onclick="startCall()" id="startCallBtn" disabled style="background: #4CAF50; color: white; display: none;" class="old-functionality">📞 Позвонить</button>
+                <button onclick="disconnectCall()" id="disconnectBtn" disabled style="background: #f44336; color: white; display: none;" class="old-functionality">🔌 Разорвать соединение</button>
+                <button onclick="resetUser()" style="background: #ff9800; color: white; display: none;">🔄 Выйти</button>
+                </div>
+        
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+                <video id="localVideo" autoplay muted style="width: 200px; height: 150px; border: 2px solid #4CAF50; background: #000; border-radius: 5px;"></video>
+                <video id="remoteVideo" autoplay style="width: 200px; height: 150px; border: 2px solid #2196F3; background: #000; border-radius: 5px;"></video>
+                </div>
+            
+            <div id="log" class="log"></div>
+        </div>
+            
+        <!-- Окно входящего звонка -->
+        <div id="incomingCallModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                <h2 style="color: #333; margin-bottom: 20px;">📞 Входящий звонок</h2>
+                <p style="font-size: 18px; margin-bottom: 30px;">Вам звонит: <strong id="callerName"></strong></p>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <button onclick="acceptIncomingCall()" style="background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">✅ Принять</button>
+                    <button onclick="rejectIncomingCall()" style="background: #f44336; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;">❌ Отклонить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Окно чата -->
+        <div id="chatModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1001; justify-content: center; align-items: center;">
+            <div style="background: white; width: 400px; height: 500px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+                <!-- Заголовок чата -->
+                <div style="background: #2196F3; color: white; padding: 15px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">💬 Чат с <span id="chatFriendName"></span></h3>
+                    <button onclick="closeChat()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
+                </div>
+                
+                <!-- Область сообщений -->
+                <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9;">
+                    <!-- Сообщения будут добавляться здесь -->
+                </div>
+                
+                <!-- Панель эмодзи -->
+                <div id="emojiPanel" style="display: none; padding: 10px; background: #e3f2fd; border-top: 1px solid #ddd;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <span onclick="sendEmoji('😀')" style="cursor: pointer; font-size: 20px;">😀</span>
+                        <span onclick="sendEmoji('😂')" style="cursor: pointer; font-size: 20px;">😂</span>
+                        <span onclick="sendEmoji('😍')" style="cursor: pointer; font-size: 20px;">😍</span>
+                        <span onclick="sendEmoji('🤔')" style="cursor: pointer; font-size: 20px;">🤔</span>
+                        <span onclick="sendEmoji('👍')" style="cursor: pointer; font-size: 20px;">👍</span>
+                        <span onclick="sendEmoji('👎')" style="cursor: pointer; font-size: 20px;">👎</span>
+                        <span onclick="sendEmoji('❤️')" style="cursor: pointer; font-size: 20px;">❤️</span>
+                        <span onclick="sendEmoji('🎉')" style="cursor: pointer; font-size: 20px;">🎉</span>
+                    </div>
+                </div>
+                
+                <!-- Панель ввода -->
+                <div style="padding: 15px; border-top: 1px solid #ddd; background: white; border-radius: 0 0 15px 15px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="toggleEmojiPanel()" style="background: #ff9800; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">😀</button>
+                        <input type="text" id="messageInput" placeholder="Введите сообщение..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" onkeypress="handleMessageKeyPress(event)">
+                        <button onclick="sendMessage()" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Система друзей -->
+        <div class="user-section" id="friendsSection" style="display: none;">
+            <h2>👥 Система друзей</h2>
+            
+            <!-- Поиск пользователей -->
+            <div class="search-section">
+                <h3>🔍 Поиск пользователей</h3>
+                <input type="text" id="searchUsername" placeholder="Введите логин пользователя" style="width: 300px;">
+                <button onclick="searchUser()" class="btn-primary">🔍 Найти</button>
+                <div id="searchResults" class="search-results"></div>
+        </div>
+            
+            <!-- Списки -->
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <!-- Друзья -->
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>👥 Друзья</h3>
+                    <div id="friendsList" class="friends-list">
+                        <p style="color: #666; text-align: center; margin: 20px 0;">Нет друзей</p>
+                </div>
+        </div>
+            
+                <!-- Запросы в друзья -->
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>📨 Запросы в друзья</h3>
+                    <div id="requestsList" class="requests-list">
+                        <p style="color: #666; text-align: center; margin: 20px 0;">Нет запросов</p>
+        </div>
+            </div>
+            
+                <!-- Отправленные приглашения -->
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>📤 Отправленные приглашения</h3>
+                    <div id="sentRequestsList" class="sent-requests-list">
+                        <p style="color: #666; text-align: center; margin: 20px 0;">Нет отправленных приглашений</p>
+                </div>
+        </div>
+        </div>
+        </div>
+        
+        <div class="user-section">
+            <h2>📋 Логи</h2>
+            <button onclick="copyLogs()" style="background: #4CAF50; color: white; font-weight: bold;">📋 Копировать логи</button>
+            <p>Эта кнопка скопирует логи для отправки разработчику</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('Script started');
+        // WebSocket соединение (только для звонков)
+        const WEBSOCKET_URL = 'wss://lizamsg.ru:9000';
+        
+        // Конфигурация для чатов
+        const CHAT_WEBSOCKET_URL = 'wss://lizacom.ru:9002';
+        
+        // WebRTC конфигурация
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { 
+                    urls: 'turn:89.169.141.202:3478',
+                    username: 'lizaapp',
+                    credential: 'lizaapp123'
+                },
+                { 
+                    urls: 'turns:62.84.126.200:3479',
+                    username: 'lizaapp',
+                    credential: 'lizaapp123'
+                }
+            ]
+        };
+        
+        // Глобальный пользователь
+        let currentUser = {
+            id: null,
+            ws: null,
+            state: 'idle', // idle, connecting, connected, calling
+            targetUser: null,
+            peerConnection: null,
+            localStream: null,
+            sessionToken: null,
+            isInitiator: false,
+            webrtcInitiated: false,
+            wsConnected: false,
+            wsUserId: null,
+            log: (msg, type = 'info') => {
+                const logEl = document.getElementById('log');
+                const time = new Date().toLocaleTimeString();
+                const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+                logEl.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        };
+        
+        // Подключение к WebSocket серверу для звонков
+        function connectCallsWebSocket() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const wsUrl = `${WEBSOCKET_URL}?username=${encodeURIComponent(currentUser.id)}`;
+                    currentUser.callsWs = new WebSocket(wsUrl);
+                    
+                    currentUser.callsWs.onopen = () => {
+                        currentUser.callsWsConnected = true;
+                        currentUser.log('🔌 WebSocket для звонков подключен', 'success');
+                        resolve();
+                    };
+                    
+                    currentUser.callsWs.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            handleCallsWebSocketMessage(message);
+                        } catch (error) {
+                            currentUser.log(`❌ Ошибка парсинга сообщения звонков: ${error.message}`, 'error');
+                        }
+                    };
+                    
+                    currentUser.callsWs.onclose = () => {
+                        currentUser.callsWsConnected = false;
+                        currentUser.log('🔌 WebSocket для звонков отключен', 'warning');
+                        
+                        // Автоматическое переподключение через 3 секунды
+                        if (currentUser.id) {
+                            setTimeout(() => {
+                                if (currentUser.id && !currentUser.callsWsConnected) {
+                                    currentUser.log('🔄 Переподключение к WebSocket звонков...', 'info');
+                                    connectCallsWebSocket().catch(error => {
+                                        currentUser.log(`❌ Ошибка переподключения звонков: ${error.message}`, 'error');
+                                    });
+                                }
+                            }, 3000);
+                        }
+                    };
+                    
+                    currentUser.callsWs.onerror = (error) => {
+                        currentUser.log(`❌ Ошибка WebSocket звонков: ${error.message}`, 'error');
+                        reject(error);
+                    };
+                
+            } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+        
+        
+        // Обработка сообщений WebSocket для звонков
+        function handleCallsWebSocketMessage(message) {
+            // Обрабатываем системные сообщения
+            if (message.type === 'connected') {
+                currentUser.log(`✅ Подключение к серверу подтверждено`, 'success');
+                // Сохраняем userId от сервера для WebSocket сообщений
+                if (message.userId) {
+                    currentUser.wsUserId = message.userId;
+                    currentUser.log(`🆔 WebSocket ID: ${message.userId}`, 'info');
+                }
+                return;
+            }
+            
+            if (message.type === 'error') {
+                currentUser.log(`❌ Ошибка сервера: ${message.message}`, 'error');
+                return;
+            }
+            
+            // Обрабатываем сигналы
+            if (message.from) {
+                currentUser.log(`📨 Получено: ${message.type} от ${message.from}`, 'info');
+            }
+            
+            switch (message.type) {
+                case 'ping':
+                    handlePing(message);
+                    break;
+                case 'pong':
+                    handlePong(message);
+                    break;
+                case 'offer':
+                    handleOffer(message);
+                    break;
+                case 'answer':
+                    handleAnswer(message);
+                    break;
+                case 'ice-candidate':
+                    handleIceCandidate(message);
+                    break;
+                case 'disconnect':
+                    handleDisconnect(message);
+                    break;
+                case 'chat_message':
+                    handleChatMessage(message);
+                    break;
+                default:
+                    if (message.from) {
+                        currentUser.log(`⚠️ Неизвестный тип сообщения: ${message.type}`, 'warning');
+                    }
+            }
+        }
+        
+        
+        // Отправка сообщения через WebSocket для звонков
+        function sendCallsWebSocketMessage(type, data, to = null) {
+            if (!currentUser.callsWsConnected || !currentUser.callsWs) {
+                currentUser.log('❌ WebSocket для звонков не подключен', 'error');
+                return;
+            }
+            
+            const message = {
+                type: type,
+                from: currentUser.wsUserId || currentUser.id,
+                to: to || currentUser.targetUser,
+                data: data,
+                timestamp: Date.now()
+            };
+            
+            try {
+                currentUser.callsWs.send(JSON.stringify(message));
+                currentUser.log(`✅ ${type} отправлен`, 'success');
+            } catch (error) {
+                currentUser.log(`❌ Ошибка отправки ${type}: ${error.message}`, 'error');
+            }
+        }
+        
+        
+        // Функция для показа поля пароля
+        function showPasswordField(event) {
+            const passwordField = document.getElementById('userPassword');
+            const loginButton = event.target;
+            
+            if (passwordField.style.display === 'none') {
+                passwordField.style.display = 'block';
+                loginButton.textContent = 'Войти';
+                loginButton.onclick = () => startUser();
+            }
+        }
+        
+        // Функция для запуска пользователя
+        async function startUser() {
+            const username = document.getElementById('userId').value;
+            const password = document.getElementById('userPassword').value;
+            
+            if (!username) {
+                currentUser.log(`❌ Введите логин`, 'error');
+                return;
+            }
+            
+            if (!password) {
+                currentUser.log(`❌ Введите пароль`, 'error');
+                return;
+            }
+            
+            // Авторизация пользователя
+            currentUser.log(`🔐 Авторизация пользователя ${username}...`, 'info');
+            
+            try {
+                const response = await fetch('https://lizaapp.wg01.ru/api/login.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser.id = username;
+                    currentUser.sessionToken = data.sessionToken;
+                    
+                    // Сохраняем данные в localStorage
+                    localStorage.setItem('userData', JSON.stringify({
+                        username: username,
+                        userId: data.userId,
+                        sessionToken: data.sessionToken
+                    }));
+                    
+                    currentUser.log(`✅ Авторизация успешна`, 'success');
+                } else {
+                    currentUser.log(`❌ Ошибка авторизации: ${data.error}`, 'error');
+                    return;
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка соединения с сервером`, 'error');
+                return;
+            }
+            
+            currentUser.lastSignalId = Math.floor(Date.now() / 1000) - 60; // Получаем сигналы за последнюю минуту
+            currentUser.state = 'idle';
+            currentUser.targetUser = null;
+            currentUser.isInitiator = false;
+            currentUser.webrtcInitiated = false;
+            currentUser.log(`🚀 Пользователь ${currentUser.id} готов к звонкам`, 'success');
+            currentUser.log(`⏰ Игнорируем сигналы старше: ${currentUser.lastSignalId}`, 'info');
+            currentUser.log(`📊 Состояние: ${currentUser.state}`, 'info');
+            
+            // Подключаемся к WebSocket серверам
+            try {
+                await connectCallsWebSocket();
+            } catch (error) {
+                currentUser.log(`❌ Ошибка подключения к WebSocket: ${error.message}`, 'error');
+                return;
+            }
+            
+            // Обновляем UI
+            updateUI();
+            
+            // Показываем систему друзей
+            showFriendsSection();
+            
+            // Загружаем сообщения из localStorage
+            loadChatMessagesFromStorage();
+            
+            currentUser.log(`📹 Камера и микрофон будут запущены при звонке`, 'info');
+        }
+        
+        
+        // Функция для обновления UI
+        function updateUI() {
+            const loginSection = document.getElementById('loginSection');
+            const userInfo = document.getElementById('userInfo');
+            const userStatus = document.getElementById('userStatus');
+            const currentUserId = document.getElementById('currentUserId');
+            const startCallBtn = document.getElementById('startCallBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const resetBtn = document.querySelector('button[onclick="resetUser()"]');
+            
+            if (currentUser.id) {
+                // Пользователь авторизован
+                loginSection.style.display = 'none';
+                userInfo.style.display = 'block';
+                currentUserId.textContent = currentUser.id;
+                
+                // Обновляем статус
+                userStatus.textContent = getStatusText();
+                userStatus.className = `status ${currentUser.state}`;
+                
+                // Обновляем кнопки
+                if (currentUser.state === 'idle') {
+                startCallBtn.style.display = 'inline-block';
+                startCallBtn.disabled = false;
+                disconnectBtn.style.display = 'none';
+                    resetBtn.style.display = 'inline-block';
+                } else if (currentUser.state === 'connecting' || currentUser.state === 'connected' || currentUser.state === 'calling') {
+                    startCallBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'inline-block';
+                    disconnectBtn.disabled = false;
+                    resetBtn.style.display = 'inline-block';
+                }
+                } else {
+                // Пользователь не авторизован
+                loginSection.style.display = 'block';
+                userInfo.style.display = 'none';
+            }
+        }
+        
+        function getStatusText() {
+            switch (currentUser.state) {
+                case 'idle': return 'Готов к звонкам';
+                case 'connecting': return 'Подключение...';
+                case 'connected': return 'Соединение установлено';
+                case 'calling': return 'Звонок активен';
+                default: return 'Отключен';
+            }
+        }
+        
+        // Функция для начала звонка
+        async function startAudioCall() {
+            const targetId = document.getElementById('targetUserId').value;
+            
+            if (!targetId) {
+                currentUser.log('❌ Не указан целевой пользователь', 'error');
+                return;
+            }
+            
+            if (currentUser.state !== 'idle') {
+                currentUser.log(`❌ Нельзя начать вызов - состояние: ${currentUser.state}`, 'error');
+                return;
+            }
+            
+            currentUser.log(`🎵 Начинаем аудио звонок к ${targetId}`, 'info');
+            currentUser.state = 'connecting';
+            currentUser.targetUser = targetId;
+            currentUser.isInitiator = true;
+            currentUser.webrtcInitiated = false;
+            updateUI();
+            
+            // Отправляем ping через WebSocket с типом аудио
+            currentUser.log(`📤 Отправляем ping к ${targetId}`, 'info');
+            sendCallsWebSocketMessage('ping', { timestamp: Date.now(), callType: 'audio' }, targetId);
+        }
+        
+        async function startCall() {
+            const targetId = document.getElementById('targetUserId').value;
+            
+            if (!targetId) {
+                currentUser.log('❌ Не указан целевой пользователь', 'error');
+                return;
+            }
+            
+            if (currentUser.state !== 'idle') {
+                currentUser.log(`❌ Нельзя начать вызов - состояние: ${currentUser.state}`, 'error');
+                return;
+            }
+            
+            currentUser.log(`📞 Начинаем звонок к ${targetId}`, 'info');
+            currentUser.state = 'connecting';
+            currentUser.targetUser = targetId;
+            currentUser.isInitiator = true;
+            currentUser.webrtcInitiated = false;
+            updateUI();
+            
+            // Отправляем ping через WebSocket
+            currentUser.log(`📤 Отправляем ping к ${targetId}`, 'info');
+            sendCallsWebSocketMessage('ping', { timestamp: Date.now(), callType: 'video' }, targetId);
+        }
+        
+        
+        // Обработка ping
+        async function handlePing(signal) {
+            if (currentUser.state !== 'idle') {
+                currentUser.log(`⚠️ Игнорируем ping от ${signal.from} - состояние: ${currentUser.state}`, 'warning');
+                return;
+            }
+                
+            currentUser.log(`🏓 Получен ping от ${signal.from}`, 'info');
+            
+            // Показываем окно входящего звонка
+            incomingCall.isActive = true;
+            incomingCall.caller = signal.from;
+            incomingCall.offer = null; // offer еще не получен
+            incomingCall.iceCandidates = [];
+            
+            document.getElementById('callerName').textContent = signal.from;
+            document.getElementById('incomingCallModal').style.display = 'flex';
+            
+            currentUser.log(`📞 Входящий звонок от ${signal.from}`, 'info');
+            
+            // Определяем тип звонка
+            const callType = signal.data.callType || 'video';
+            const isAudioCall = callType === 'audio';
+            
+            // Запускаем медиа потоки в зависимости от типа звонка
+            try {
+                if (isAudioCall) {
+                    currentUser.log(`🎵 Запуск микрофона для аудио звонка...`, 'info');
+                    currentUser.localStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: false,  // Только аудио!
+                        audio: true 
+                    });
+                } else {
+                    currentUser.log(`📹 Запуск камеры и микрофона для видео звонка...`, 'info');
+                    currentUser.localStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: true, 
+                        audio: true 
+                    });
+                }
+                
+                document.getElementById('localVideo').srcObject = currentUser.localStream;
+                currentUser.log(`✅ Медиа потоки получены: ${currentUser.localStream.getTracks().length} треков`, 'success');
+                
+                // Логируем детали треков
+                currentUser.localStream.getTracks().forEach(track => {
+                    currentUser.log(`📹 Трек: ${track.kind}, enabled: ${track.enabled}, readyState: ${track.readyState}`, 'info');
+                });
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка получения медиа: ${error.message}`, 'error');
+                // Скрываем окно входящего звонка при ошибке
+                hideIncomingCallModal();
+            }
+        }
+        
+        // Обработка pong
+        function handlePong(signal) {
+            if (currentUser.state === 'connecting' && currentUser.targetUser === signal.from) {
+                currentUser.log(`🏓 Получен pong от ${signal.from} - связь установлена!`, 'success');
+                currentUser.state = 'connected';
+                updateUI();
+                
+                // Только инициатор звонка отправляет offer после pong
+                if (currentUser.isInitiator) {
+                    initiateWebRTC();
+                }
+                    } else {
+                currentUser.log(`⚠️ Игнорируем pong от ${signal.from} - состояние: ${currentUser.state}`, 'warning');
+            }
+        }
+        
+        // Инициация WebRTC соединения
+        async function initiateWebRTC() {
+            if (currentUser.state !== 'connected' || currentUser.webrtcInitiated) {
+                currentUser.log(`⚠️ Не можем инициировать WebRTC - состояние: ${currentUser.state}, initiated: ${currentUser.webrtcInitiated}`, 'warning');
+                return;
+            }
+            
+            currentUser.webrtcInitiated = true;
+            currentUser.log(`🎥 Инициируем WebRTC соединение`, 'info');
+            
+            try {
+                // Создаем PeerConnection
+                currentUser.peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Добавляем локальный поток
+                if (currentUser.localStream) {
+                    currentUser.localStream.getTracks().forEach(track => {
+                        currentUser.peerConnection.addTrack(track, currentUser.localStream);
+                        currentUser.log(`📹 Добавлен трек: ${track.kind}`, 'info');
+                    });
+                    currentUser.log(`📹 Добавлено ${currentUser.localStream.getTracks().length} треков в PeerConnection`, 'success');
+                } else {
+                    currentUser.log(`❌ Нет локального потока для добавления в PeerConnection`, 'error');
+                }
+                
+                // Обработчики событий
+                currentUser.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        sendSignal('ice-candidate', event.candidate);
+                    }
+                };
+                
+                currentUser.peerConnection.ontrack = (event) => {
+                    currentUser.log('📹 Получен удаленный поток', 'success');
+                    currentUser.log(`📹 Количество потоков: ${event.streams.length}`, 'info');
+                    currentUser.log(`📹 Количество треков: ${event.track.kind}`, 'info');
+                    document.getElementById('remoteVideo').srcObject = event.streams[0];
+                };
+                
+                currentUser.peerConnection.onconnectionstatechange = () => {
+                    currentUser.log(`🔗 Состояние соединения: ${currentUser.peerConnection.connectionState}`, 'info');
+                    if (currentUser.peerConnection.connectionState === 'connected') {
+                        currentUser.log('✅ P2P соединение установлено!', 'success');
+                        currentUser.state = 'calling';
+                        updateUI();
+                    }
+                };
+                
+                // Создаем и отправляем offer
+                const offer = await currentUser.peerConnection.createOffer();
+                await currentUser.peerConnection.setLocalDescription(offer);
+                
+                await sendSignal('offer', offer);
+                currentUser.log('✅ Offer отправлен', 'success');
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка инициации WebRTC: ${error.message}`, 'error');
+            }
+        }
+        
+        // Обработка offer
+        async function handleOffer(signal) {
+            if (currentUser.state !== 'connecting' || currentUser.targetUser !== signal.from) {
+                currentUser.log(`⚠️ Игнорируем offer - состояние: ${currentUser.state}, target: ${currentUser.targetUser}`, 'warning');
+                return;
+            }
+            
+            currentUser.log(`📥 Получен offer от ${signal.from}`, 'info');
+            
+            // Проверяем наличие медиа потоков
+            if (!currentUser.localStream) {
+                currentUser.log(`❌ Нет локального потока для добавления в PeerConnection (получатель)`, 'error');
+                return;
+            }
+            
+            try {
+                // Создаем PeerConnection
+                currentUser.peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Добавляем локальный поток
+                currentUser.localStream.getTracks().forEach(track => {
+                    currentUser.peerConnection.addTrack(track, currentUser.localStream);
+                    currentUser.log(`📹 Добавлен трек: ${track.kind} (получатель)`, 'info');
+                });
+                currentUser.log(`📹 Добавлено ${currentUser.localStream.getTracks().length} треков в PeerConnection (получатель)`, 'success');
+                
+                // Обработчики событий
+                currentUser.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        sendSignal('ice-candidate', event.candidate);
+                    }
+                };
+                
+                currentUser.peerConnection.ontrack = (event) => {
+                    currentUser.log('📹 Получен удаленный поток (получатель)', 'success');
+                    currentUser.log(`📹 Количество потоков: ${event.streams.length} (получатель)`, 'info');
+                    currentUser.log(`📹 Количество треков: ${event.track.kind} (получатель)`, 'info');
+                    document.getElementById('remoteVideo').srcObject = event.streams[0];
+                };
+                
+                currentUser.peerConnection.onconnectionstatechange = () => {
+                    currentUser.log(`🔗 Состояние соединения: ${currentUser.peerConnection.connectionState}`, 'info');
+                    if (currentUser.peerConnection.connectionState === 'connected') {
+                        currentUser.log('✅ P2P соединение установлено!', 'success');
+                        currentUser.state = 'calling';
+                        updateUI();
+                    }
+                };
+                
+                // Устанавливаем удаленное описание
+                await currentUser.peerConnection.setRemoteDescription(signal.data);
+                
+                // Создаем и отправляем answer
+                const answer = await currentUser.peerConnection.createAnswer();
+                await currentUser.peerConnection.setLocalDescription(answer);
+                
+                await sendSignal('answer', answer);
+                currentUser.log('✅ Answer отправлен', 'success');
+                
+                // Показываем кнопку "Завершить" у получателя
+                const disconnectBtn = document.getElementById(`disconnectBtn_${signal.from}`);
+                const callBtn = document.getElementById(`callBtn_${signal.from}`);
+                
+                if (disconnectBtn) disconnectBtn.style.display = 'inline-block';
+                if (callBtn) callBtn.style.display = 'none';
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка обработки offer: ${error.message}`, 'error');
+            }
+        }
+        
+        // Принятие входящего звонка
+        async function acceptIncomingCall() {
+            if (!incomingCall.isActive) return;
+            
+            currentUser.log(`✅ Принимаем звонок от ${incomingCall.caller}`, 'success');
+            
+            // Отправляем pong для подтверждения принятия звонка
+            sendCallsWebSocketMessage('pong', { received: true }, incomingCall.caller);
+            currentUser.log('✅ pong отправлен', 'success');
+            
+            // Устанавливаем состояние
+            currentUser.state = 'connecting';
+            currentUser.targetUser = incomingCall.caller;
+            currentUser.isInitiator = false;
+            currentUser.webrtcInitiated = false;
+            updateUI();
+            
+            // Скрываем окно входящего звонка
+            hideIncomingCallModal();
+            
+            currentUser.log(`⏳ Ждем offer от ${incomingCall.caller}...`, 'info');
+        }
+        
+        // Отклонение входящего звонка
+        async function rejectIncomingCall() {
+            if (!incomingCall.isActive) return;
+            
+            currentUser.log(`❌ Отклоняем звонок от ${incomingCall.caller}`, 'warning');
+            
+            // Останавливаем медиа потоки
+            if (currentUser.localStream) {
+                currentUser.localStream.getTracks().forEach(track => track.stop());
+                currentUser.localStream = null;
+                document.getElementById('localVideo').srcObject = null;
+                currentUser.log('📹 Медиа потоки остановлены', 'info');
+            }
+            
+            // Отправляем disconnect сигнал конкретно инициатору звонка
+            sendCallsWebSocketMessage('disconnect', { reason: 'call_rejected' }, incomingCall.caller);
+            
+            // Скрываем окно входящего звонка
+            hideIncomingCallModal();
+        }
+        
+        // Скрытие окна входящего звонка
+        function hideIncomingCallModal() {
+            document.getElementById('incomingCallModal').style.display = 'none';
+            incomingCall.isActive = false;
+            incomingCall.caller = null;
+            incomingCall.offer = null;
+            incomingCall.iceCandidates = [];
+            
+            // Очищаем таймаут если есть
+            if (incomingCall.callTimeout) {
+                clearTimeout(incomingCall.callTimeout);
+                incomingCall.callTimeout = null;
+            }
+        }
+        
+        // Обработка answer
+        async function handleAnswer(signal) {
+            if (currentUser.state !== 'connected') {
+                currentUser.log(`⚠️ Игнорируем answer - состояние: ${currentUser.state}`, 'warning');
+                return;
+            }
+
+            currentUser.log(`📥 Получен answer от ${signal.from}`, 'info');
+            
+            try {
+                if (currentUser.peerConnection) {
+                    await currentUser.peerConnection.setRemoteDescription(signal.data);
+                    currentUser.log('✅ Offer/Answer обмен завершен!', 'success');
+                    currentUser.state = 'calling';
+                    
+                    // Показываем кнопку "Завершить" у инициатора
+                    const disconnectBtn = document.getElementById(`disconnectBtn_${signal.from}`);
+                    const callBtn = document.getElementById(`callBtn_${signal.from}`);
+                    
+                    if (disconnectBtn) disconnectBtn.style.display = 'inline-block';
+                    if (callBtn) callBtn.style.display = 'none';
+                    
+                    updateUI();
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка обработки answer: ${error.message}`, 'error');
+            }
+        }
+        
+        // Обработка ICE кандидатов
+        async function handleIceCandidate(signal) {
+            if (currentUser.peerConnection) {
+                try {
+                    await currentUser.peerConnection.addIceCandidate(signal.data);
+                    currentUser.log(`🧊 ICE кандидат добавлен от ${signal.from}`, 'info');
+                                } catch (error) {
+                    currentUser.log(`❌ Ошибка добавления ICE кандидата: ${error.message}`, 'error');
+                }
+                            } else {
+                currentUser.log(`⚠️ PeerConnection не создан, игнорируем ICE кандидат`, 'warning');
+            }
+        }
+        
+        // Обработка disconnect
+        async function handleDisconnect(signal) {
+            currentUser.log(`📥 Получен disconnect от ${signal.from}`, 'warning');
+            
+            // Проверяем, что это от целевого пользователя или от того, кто звонил
+            if (currentUser.targetUser === signal.from || (incomingCall.isActive && incomingCall.caller === signal.from)) {
+                
+                // Если это отклонение звонка на ранней стадии
+                if (signal.data && signal.data.reason === 'call_rejected') {
+                    currentUser.log(`❌ Звонок отклонен пользователем ${signal.from}`, 'warning');
+                            } else {
+                    currentUser.log(`🔌 Соединение разорвано`, 'warning');
+                }
+                
+                // Завершаем только звонок, не сбрасываем пользователя
+                if (currentUser.peerConnection) {
+                    currentUser.peerConnection.close();
+                    currentUser.peerConnection = null;
+                }
+                
+                // Останавливаем медиа потоки
+                if (currentUser.localStream) {
+                    currentUser.localStream.getTracks().forEach(track => track.stop());
+                    currentUser.localStream = null;
+                    document.getElementById('localVideo').srcObject = null;
+                    currentUser.log('📹 Медиа потоки остановлены', 'info');
+                }
+                
+                // Восстанавливаем кнопки друзей
+                restoreFriendButtons();
+                
+                // Сбрасываем только состояние звонка
+                currentUser.state = 'idle';
+                currentUser.targetUser = null;
+                currentUser.isInitiator = false;
+                currentUser.webrtcInitiated = false;
+                
+                document.getElementById('remoteVideo').srcObject = null;
+                
+                // Скрываем окно входящего звонка если оно открыто
+                if (incomingCall.isActive) {
+                    hideIncomingCallModal();
+                }
+                
+                updateUI();
+            }
+        }
+        
+        // Отправка сигнала через WebSocket для звонков
+        function sendSignal(type, data) {
+            sendCallsWebSocketMessage(type, data);
+        }
+        
+        // ===== СИСТЕМА СООБЩЕНИЙ =====
+        
+        // Переменные для чата
+        let currentChatFriend = null;
+        let chatMessages = {}; // Хранилище сообщений по друзьям
+        
+        // Открытие чата с другом
+        function openChat(friendUsername) {
+            // Открываем отдельное окно чата
+            const chatUrl = `chat.php?userId=${encodeURIComponent(currentUser.id)}&friend=${encodeURIComponent(friendUsername)}`;
+            window.open(chatUrl, 'chat_' + friendUsername, 'width=800,height=600,scrollbars=yes,resizable=yes');
+        }
+        
+        // Закрытие чата
+        function closeChat() {
+            document.getElementById('chatModal').style.display = 'none';
+            document.getElementById('emojiPanel').style.display = 'none';
+            currentChatFriend = null;
+        }
+        
+        // Загрузка истории сообщений
+        function loadChatHistory(friendUsername) {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+            
+            // Получаем сообщения из localStorage
+            const messages = chatMessages[friendUsername] || [];
+            
+            messages.forEach(message => {
+                addMessageToChat(message.text, message.from, message.timestamp, message.type);
+            });
+            
+            // Прокручиваем вниз
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Добавление сообщения в чат
+        function addMessageToChat(text, from, timestamp, type = 'text') {
+            const messagesContainer = document.getElementById('chatMessages');
+            const isOwn = from === currentUser.id;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                margin: 10px 0;
+                display: flex;
+                justify-content: ${isOwn ? 'flex-end' : 'flex-start'};
+            `;
+            
+            const messageBubble = document.createElement('div');
+            messageBubble.style.cssText = `
+                max-width: 70%;
+                padding: 10px 15px;
+                border-radius: 15px;
+                background: ${isOwn ? '#2196F3' : '#e0e0e0'};
+                color: ${isOwn ? 'white' : 'black'};
+                word-wrap: break-word;
+            `;
+            
+            if (type === 'emoji') {
+                messageBubble.style.fontSize = '24px';
+                messageBubble.textContent = text;
+            } else {
+                messageBubble.textContent = text;
+            }
+            
+            messageDiv.appendChild(messageBubble);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Прокручиваем вниз
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Отправка сообщения
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !currentChatFriend) return;
+            
+            // Добавляем сообщение в чат
+            const timestamp = Date.now();
+            addMessageToChat(message, currentUser.id, timestamp, 'text');
+            
+            // Сохраняем в localStorage
+            if (!chatMessages[currentChatFriend]) {
+                chatMessages[currentChatFriend] = [];
+            }
+            chatMessages[currentChatFriend].push({
+                text: message,
+                from: currentUser.id,
+                timestamp: timestamp,
+                type: 'text'
+            });
+            localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+            
+            // Отправляем через PHP API
+            try {
+                const response = await fetch('chat-api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'send_message',
+                        from: currentUser.id,
+                        to: currentChatFriend,
+                        message: message
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    currentUser.log(`✅ Сообщение отправлено через API`, 'success');
+                } else {
+                    currentUser.log(`❌ Ошибка отправки: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка API: ${error.message}`, 'error');
+            }
+            
+            // Очищаем поле ввода
+            messageInput.value = '';
+        }
+        
+        // Отправка эмодзи
+        async function sendEmoji(emoji) {
+            if (!currentChatFriend) return;
+            
+            // Добавляем эмодзи в чат
+            const timestamp = Date.now();
+            addMessageToChat(emoji, currentUser.id, timestamp, 'emoji');
+            
+            // Сохраняем в localStorage
+            if (!chatMessages[currentChatFriend]) {
+                chatMessages[currentChatFriend] = [];
+            }
+            chatMessages[currentChatFriend].push({
+                text: emoji,
+                from: currentUser.id,
+                timestamp: timestamp,
+                type: 'emoji'
+            });
+            localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+            
+            // Отправляем через PHP API
+            try {
+                const response = await fetch('chat-api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'send_emoji',
+                        from: currentUser.id,
+                        to: currentChatFriend,
+                        emoji: emoji
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    currentUser.log(`✅ Эмодзи отправлено через API`, 'success');
+                } else {
+                    currentUser.log(`❌ Ошибка отправки эмодзи: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка API: ${error.message}`, 'error');
+            }
+            
+            // Скрываем панель эмодзи
+            document.getElementById('emojiPanel').style.display = 'none';
+        }
+        
+        // Переключение панели эмодзи
+        function toggleEmojiPanel() {
+            const emojiPanel = document.getElementById('emojiPanel');
+            emojiPanel.style.display = emojiPanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Обработка нажатия Enter в поле ввода
+        function handleMessageKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Обработка входящих сообщений
+        function handleChatMessage(signal) {
+            if (!currentChatFriend || signal.from !== currentChatFriend) return;
+            
+            // Добавляем сообщение в чат
+            addMessageToChat(signal.data.message, signal.from, signal.data.timestamp, signal.data.type);
+            
+            // Сохраняем в localStorage
+            if (!chatMessages[currentChatFriend]) {
+                chatMessages[currentChatFriend] = [];
+            }
+            chatMessages[currentChatFriend].push({
+                text: signal.data.message,
+                from: signal.from,
+                timestamp: signal.data.timestamp,
+                type: signal.data.type
+            });
+            localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+        }
+        
+        // Загрузка сообщений из localStorage при инициализации
+        function loadChatMessagesFromStorage() {
+            const stored = localStorage.getItem('chatMessages');
+            if (stored) {
+                chatMessages = JSON.parse(stored);
+            }
+        }
+        
+        
+        // Разрыв соединения
+        async function disconnectCall() {
+            currentUser.log('🔌 Разрываем соединение', 'warning');
+            
+            if (currentUser.peerConnection) {
+                currentUser.peerConnection.close();
+                currentUser.peerConnection = null;
+            }
+            
+            // Отправляем disconnect сигнал
+            if (currentUser.targetUser) {
+                await sendSignal('disconnect', { reason: 'user_disconnected' });
+            }
+            
+            // Останавливаем медиа потоки
+            if (currentUser.localStream) {
+                currentUser.localStream.getTracks().forEach(track => track.stop());
+                currentUser.localStream = null;
+                document.getElementById('localVideo').srcObject = null;
+                currentUser.log('📹 Медиа потоки остановлены', 'info');
+            }
+            
+            // Восстанавливаем кнопки друзей
+            restoreFriendButtons();
+            
+            // Сбрасываем только состояние звонка, не весь пользователь
+            currentUser.state = 'idle';
+            currentUser.targetUser = null;
+            currentUser.isInitiator = false;
+            currentUser.webrtcInitiated = false;
+            
+            document.getElementById('remoteVideo').srcObject = null;
+            
+            updateUI();
+        }
+        
+        // Завершение звонка (только P2P соединение)
+        async function endCall() {
+            currentUser.log('🔌 Завершаем звонок', 'warning');
+            
+            if (currentUser.peerConnection) {
+                currentUser.peerConnection.close();
+                currentUser.peerConnection = null;
+            }
+            
+            // Отправляем disconnect сигнал
+            if (currentUser.targetUser) {
+                await sendSignal('disconnect', { reason: 'user_disconnected' });
+            }
+            
+            // Останавливаем медиа потоки
+            if (currentUser.localStream) {
+                currentUser.localStream.getTracks().forEach(track => track.stop());
+                currentUser.localStream = null;
+                document.getElementById('localVideo').srcObject = null;
+                currentUser.log('📹 Медиа потоки остановлены', 'info');
+            }
+            
+            // Восстанавливаем кнопки друзей
+            restoreFriendButtons();
+            
+            // Сбрасываем только состояние звонка, не весь пользователь
+            currentUser.state = 'idle';
+            currentUser.targetUser = null;
+            currentUser.isInitiator = false;
+            currentUser.webrtcInitiated = false;
+            
+            document.getElementById('remoteVideo').srcObject = null;
+            
+            updateUI();
+        }
+        
+        // Сброс пользователя
+        async function resetUser() {
+            if (currentUser.peerConnection) {
+                currentUser.peerConnection.close();
+                currentUser.peerConnection = null;
+            }
+            
+            if (currentUser.localStream) {
+                currentUser.localStream.getTracks().forEach(track => track.stop());
+                currentUser.localStream = null;
+            }
+            
+            // Закрываем WebSocket соединения
+            if (currentUser.callsWs) {
+                currentUser.callsWs.close();
+                currentUser.callsWs = null;
+                currentUser.callsWsConnected = false;
+                currentUser.wsUserId = null;
+            }
+            if (currentUser.chatWs) {
+                currentUser.chatWs.close();
+                currentUser.chatWs = null;
+                currentUser.chatWsConnected = false;
+            }
+            
+            currentUser.state = 'idle';
+            currentUser.targetUser = null;
+            currentUser.isInitiator = false;
+            currentUser.webrtcInitiated = false;
+            
+            document.getElementById('localVideo').srcObject = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            
+            currentUser.log('🔄 Пользователь сброшен', 'warning');
+            
+            // Очищаем сохраненные данные
+            localStorage.removeItem('userData');
+            
+            // Восстанавливаем кнопки друзей
+            restoreFriendButtons();
+            
+            // Скрываем систему друзей
+            hideFriendsSection();
+            
+            updateUI();
+        }
+        
+        // Копирование логов
+        function copyLogs() {
+            const log = document.getElementById('log').innerText;
+            const allLogs = `=== ЛОГИ ПОЛЬЗОВАТЕЛЯ ===\n${log}\n\n=== ИНФОРМАЦИЯ О ТЕСТЕ ===\nВремя теста: ${new Date().toLocaleString()}\nСервер: ${WEBSOCKET_URL}\nПользователь: ${currentUser.id || 'не авторизован'}`;
+            
+            navigator.clipboard.writeText(allLogs).then(() => {
+                alert('Логи скопированы в буфер обмена!');
+            });
+        }
+        
+        // ===== СИСТЕМА ДРУЗЕЙ =====
+        
+        // Данные системы друзей
+        let friendsData = {
+            friends: [],           // Список друзей
+            requests: [],          // Входящие запросы
+            sentRequests: []       // Исходящие запросы
+        };
+        
+        // Состояние входящего звонка
+        let incomingCall = {
+            isActive: false,
+            caller: null,
+            offer: null,
+            iceCandidates: [],  // Буфер для ICE кандидатов
+            maxIceCandidates: 10,  // Максимум ICE кандидатов в буфере
+            callTimeout: null  // Таймаут для автоматического отклонения
+        };
+        
+        // Показать секцию друзей после авторизации
+        function showFriendsSection() {
+            document.getElementById('friendsSection').style.display = 'block';
+            loadFriendsData();
+        }
+        
+        // Скрыть секцию друзей при выходе
+        function hideFriendsSection() {
+            document.getElementById('friendsSection').style.display = 'none';
+        }
+        
+        // Поиск пользователя
+        async function searchUser() {
+            const username = document.getElementById('searchUsername').value.trim();
+            if (!username) {
+                alert('Введите логин пользователя');
+                return;
+            }
+            
+            if (username === currentUser.id) {
+                alert('Нельзя искать самого себя');
+                return;
+            }
+            
+            currentUser.log(`🔍 Поиск пользователя: ${username}`, 'info');
+            
+            try {
+                // Поиск пользователя через API
+                const response = await fetch(`https://lizaapp.wg01.ru/api/search_user.php?username=${encodeURIComponent(username)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.user) {
+                        displaySearchResult(data.user);
+                    } else {
+                        currentUser.log(`❌ Пользователь ${username} не найден`, 'error');
+                        document.getElementById('searchResults').innerHTML = '<p style="color: red;">Пользователь не найден</p>';
+                    }
+            } else {
+                    const errorText = await response.text();
+                    currentUser.log(`❌ HTTP ошибка: ${response.status} - ${errorText}`, 'error');
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка поиска: ${error.message}`, 'error');
+                document.getElementById('searchResults').innerHTML = '<p style="color: red;">Ошибка поиска пользователя</p>';
+            }
+        }
+        
+        // Отображение результата поиска
+        function displaySearchResult(user) {
+            const searchResults = document.getElementById('searchResults');
+            
+            // Проверяем, не является ли пользователь уже другом или в запросах
+            const isFriend = friendsData.friends.some(f => f.username === user.username);
+            const hasRequest = friendsData.requests.some(r => r.username === user.username);
+            const hasSentRequest = friendsData.sentRequests.some(r => r.username === user.username);
+            
+            let buttonHtml = '';
+            if (isFriend) {
+                buttonHtml = '<span style="color: green;">✓ Уже в друзьях</span>';
+            } else if (hasRequest) {
+                buttonHtml = '<span style="color: orange;">📨 Есть входящий запрос</span>';
+            } else if (hasSentRequest) {
+                buttonHtml = '<span style="color: blue;">📤 Запрос отправлен</span>';
+                } else {
+                buttonHtml = `<button onclick="sendFriendRequest('${user.username}')" class="btn-success btn-small">👥 Добавить в друзья</button>`;
+            }
+            
+            searchResults.innerHTML = `
+                <div class="user-item">
+                    <div class="username">👤 ${user.username}</div>
+                    <div class="actions">${buttonHtml}</div>
+                </div>
+            `;
+        }
+        
+        // Отправка запроса в друзья
+        async function sendFriendRequest(username) {
+            currentUser.log(`📤 Отправка запроса в друзья: ${username}`, 'info');
+            
+            try {
+                const response = await fetch('https://lizaapp.wg01.ru/api/send_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        from_username: currentUser.id,
+                        target_username: username
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        currentUser.log(`✅ Запрос в друзья отправлен: ${username}`, 'success');
+                        
+                        // Добавляем в список отправленных запросов
+                        friendsData.sentRequests.push({
+                            username: username,
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        updateSentRequestsList();
+                        document.getElementById('searchResults').innerHTML = '<p style="color: green;">Запрос отправлен!</p>';
+                } else {
+                        currentUser.log(`❌ Ошибка отправки запроса: ${data.message}`, 'error');
+                        alert(data.message);
+                    }
+                } else {
+                    throw new Error('Ошибка отправки запроса');
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка отправки запроса: ${error.message}`, 'error');
+                alert('Ошибка отправки запроса');
+            }
+        }
+        
+        // Загрузка данных друзей
+        async function loadFriendsData() {
+            if (!currentUser.id) return;
+            
+            try {
+                // Загружаем друзей
+                const friendsResponse = await fetch(`https://lizaapp.wg01.ru/api/get_contacts.php?username=${currentUser.id}`, {
+                    method: 'GET'
+                });
+                if (friendsResponse.ok) {
+                    const friendsResponseData = await friendsResponse.json();
+                    if (friendsResponseData.success) {
+                        friendsData.friends = friendsResponseData.contacts || [];
+                        updateFriendsList();
+                    }
+                }
+                
+                // Загружаем входящие запросы
+                const requestsResponse = await fetch(`https://lizaapp.wg01.ru/api/get_requests.php?username=${currentUser.id}`, {
+                    method: 'GET'
+                });
+                if (requestsResponse.ok) {
+                    const requestsResponseData = await requestsResponse.json();
+                    if (requestsResponseData.success) {
+                        friendsData.requests = requestsResponseData.requests || [];
+                        updateRequestsList();
+                    }
+                }
+                
+                // Загружаем отправленные запросы
+                const sentRequestsResponse = await fetch(`https://lizaapp.wg01.ru/api/get_sent_requests.php?username=${currentUser.id}`, {
+                    method: 'GET'
+                });
+                if (sentRequestsResponse.ok) {
+                    const sentRequestsResponseData = await sentRequestsResponse.json();
+                    if (sentRequestsResponseData.success) {
+                        friendsData.sentRequests = sentRequestsResponseData.requests || [];
+                        updateSentRequestsList();
+                    }
+                }
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка загрузки данных друзей: ${error.message}`, 'error');
+            }
+        }
+        
+        // Обновление списка друзей
+        function updateFriendsList() {
+            const friendsList = document.getElementById('friendsList');
+            
+            if (friendsData.friends.length === 0) {
+                friendsList.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">Нет друзей</p>';
+                return;
+            }
+            
+            const friendsHtml = friendsData.friends.map(friend => `
+                <div class="friend-item">
+                    <div class="username">👤 ${friend.username}</div>
+                    <div class="actions">
+                        <button onclick="callFriend('${friend.username}')" class="btn-primary btn-small" id="callBtn_${friend.username}">📞 Видеозвонок</button>
+                        <button onclick="callFriendAudio('${friend.username}')" class="btn-secondary btn-small" id="audioCallBtn_${friend.username}">🎵 Аудиозвонок</button>
+                        <button onclick="openChat('${friend.username}')" class="btn-info btn-small" id="chatBtn_${friend.username}">💬 Сообщение</button>
+                        <button onclick="endCall()" class="btn-danger btn-small" id="disconnectBtn_${friend.username}" style="display: none;">🔌 Завершить</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            friendsList.innerHTML = friendsHtml;
+        }
+        
+        // Обновление списка входящих запросов
+        function updateRequestsList() {
+            const requestsList = document.getElementById('requestsList');
+            
+            if (friendsData.requests.length === 0) {
+                requestsList.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">Нет запросов</p>';
+                return;
+            }
+            
+            const requestsHtml = friendsData.requests.map(request => `
+                <div class="request-item">
+                    <div class="username">👤 ${request.username}</div>
+                    <div class="actions">
+                        <button onclick="acceptFriendRequest('${request.username}')" class="btn-success btn-small">✓</button>
+                        <button onclick="rejectFriendRequest('${request.username}')" class="btn-danger btn-small">✗</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            requestsList.innerHTML = requestsHtml;
+        }
+        
+        // Обновление списка отправленных запросов
+        function updateSentRequestsList() {
+            const sentRequestsList = document.getElementById('sentRequestsList');
+            
+            if (friendsData.sentRequests.length === 0) {
+                sentRequestsList.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">Нет отправленных приглашений</p>';
+                return;
+            }
+            
+            const sentRequestsHtml = friendsData.sentRequests.map(request => `
+                <div class="request-item">
+                    <div class="username">👤 ${request.username}</div>
+                    <div class="actions">
+                        <span style="color: #666; font-size: 12px;">Ожидает</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            sentRequestsList.innerHTML = sentRequestsHtml;
+        }
+        
+        // Принятие запроса в друзья
+        async function acceptFriendRequest(username) {
+            currentUser.log(`✅ Принятие запроса в друзья: ${username}`, 'info');
+            
+            try {
+                const response = await fetch('https://lizaapp.wg01.ru/api/accept_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accepter_username: currentUser.id,
+                        sender_username: username
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        currentUser.log(`✅ Запрос в друзья принят: ${username}`, 'success');
+                        
+                        // Удаляем из входящих запросов
+                        friendsData.requests = friendsData.requests.filter(r => r.username !== username);
+                        
+                        // Добавляем в друзья
+                        friendsData.friends.push({
+                            username: username,
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        updateRequestsList();
+                        updateFriendsList();
+                    } else {
+                        currentUser.log(`❌ Ошибка принятия запроса: ${data.message}`, 'error');
+                        alert(data.message);
+                    }
+                } else {
+                    throw new Error('Ошибка принятия запроса');
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка принятия запроса: ${error.message}`, 'error');
+                alert('Ошибка принятия запроса');
+            }
+        }
+        
+        // Отклонение запроса в друзья
+        async function rejectFriendRequest(username) {
+            currentUser.log(`❌ Отклонение запроса в друзья: ${username}`, 'warning');
+            
+            try {
+                const response = await fetch('https://lizaapp.wg01.ru/api/reject_invitation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        rejecter_username: currentUser.id,
+                        sender_username: username
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        currentUser.log(`✅ Запрос в друзья отклонен: ${username}`, 'success');
+                        
+                        // Удаляем из входящих запросов
+                        friendsData.requests = friendsData.requests.filter(r => r.username !== username);
+                        
+                        updateRequestsList();
+                } else {
+                        currentUser.log(`❌ Ошибка отклонения запроса: ${data.message}`, 'error');
+                        alert(data.message);
+                    }
+                } else {
+                    throw new Error('Ошибка отклонения запроса');
+                }
+            } catch (error) {
+                currentUser.log(`❌ Ошибка отклонения запроса: ${error.message}`, 'error');
+                alert('Ошибка отклонения запроса');
+            }
+        }
+        
+        // Аудио звонок другу
+        async function callFriendAudio(username) {
+            currentUser.log(`🎵 Аудио звонок другу: ${username}`, 'info');
+            
+            // Скрываем кнопки "Аудиозвонок" и показываем "Завершить"
+            const audioCallBtn = document.getElementById(`audioCallBtn_${username}`);
+            const disconnectBtn = document.getElementById(`disconnectBtn_${username}`);
+            
+            if (audioCallBtn) audioCallBtn.style.display = 'none';
+            if (disconnectBtn) disconnectBtn.style.display = 'inline-block';
+            
+            // Запускаем только аудио потоки у инициатора
+            try {
+                currentUser.log(`🎵 Запуск микрофона...`, 'info');
+                currentUser.localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: false,  // Только аудио!
+                    audio: true 
+                });
+                
+                document.getElementById('localVideo').srcObject = currentUser.localStream;
+                currentUser.log(`✅ Аудио поток получен: ${currentUser.localStream.getTracks().length} треков (инициатор)`, 'success');
+                
+                // Логируем детали треков
+                currentUser.localStream.getTracks().forEach(track => {
+                    currentUser.log(`🎵 Трек: ${track.kind}, enabled: ${track.enabled}, readyState: ${track.readyState} (инициатор)`, 'info');
+                });
+                
+                // Используем существующий функционал звонков, но с аудио типом
+                document.getElementById('targetUserId').value = username;
+                startAudioCall();
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка получения аудио: ${error.message}`, 'error');
+                
+                // Восстанавливаем кнопки при ошибке
+                if (audioCallBtn) audioCallBtn.style.display = 'inline-block';
+                if (disconnectBtn) disconnectBtn.style.display = 'none';
+            }
+        }
+        
+        // Звонок другу
+        async function callFriend(username) {
+            currentUser.log(`📞 Звонок другу: ${username}`, 'info');
+            
+            // Скрываем кнопку "Видеозвонок" и показываем "Завершить"
+            const callBtn = document.getElementById(`callBtn_${username}`);
+            const disconnectBtn = document.getElementById(`disconnectBtn_${username}`);
+            
+            if (callBtn) callBtn.style.display = 'none';
+            if (disconnectBtn) disconnectBtn.style.display = 'inline-block';
+            
+            // Запускаем медиа потоки у инициатора
+            try {
+                currentUser.log(`📹 Запуск камеры и микрофона...`, 'info');
+                currentUser.localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                document.getElementById('localVideo').srcObject = currentUser.localStream;
+                currentUser.log(`✅ Медиа потоки получены: ${currentUser.localStream.getTracks().length} треков (инициатор)`, 'success');
+                
+                // Логируем детали треков
+                currentUser.localStream.getTracks().forEach(track => {
+                    currentUser.log(`📹 Трек: ${track.kind}, enabled: ${track.enabled}, readyState: ${track.readyState} (инициатор)`, 'info');
+                });
+                
+                // Используем существующий функционал звонков
+                document.getElementById('targetUserId').value = username;
+                startCall();
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка получения медиа: ${error.message}`, 'error');
+                
+                // Восстанавливаем кнопки при ошибке
+                if (callBtn) callBtn.style.display = 'inline-block';
+                if (disconnectBtn) disconnectBtn.style.display = 'none';
+            }
+        }
+        
+        // Восстановление кнопок друзей после завершения звонка
+        function restoreFriendButtons() {
+            // Восстанавливаем все кнопки друзей
+            friendsData.friends.forEach(friend => {
+                const callBtn = document.getElementById(`callBtn_${friend.username}`);
+                const audioCallBtn = document.getElementById(`audioCallBtn_${friend.username}`);
+                const disconnectBtn = document.getElementById(`disconnectBtn_${friend.username}`);
+                
+                if (callBtn) callBtn.style.display = 'inline-block';
+                if (audioCallBtn) audioCallBtn.style.display = 'inline-block';
+                if (disconnectBtn) disconnectBtn.style.display = 'none';
+            });
+        }
+        
+        // Восстановление данных пользователя из localStorage
+        function restoreUserData() {
+            const userData = localStorage.getItem('userData');
+            if (userData) {
+                try {
+                    const data = JSON.parse(userData);
+                    if (data.username && data.sessionToken) {
+                        // Заполняем поля формы
+                        document.getElementById('userId').value = data.username;
+                        
+                        // Восстанавливаем данные пользователя
+                        currentUser.id = data.username;
+                        currentUser.sessionToken = data.sessionToken;
+                        currentUser.userId = data.userId;
+                        
+                        currentUser.log(`🔄 Восстановлены данные пользователя: ${data.username}`, 'info');
+                        
+                        // Автоматически подключаемся
+                        autoConnect();
+                        return true;
+                }
+            } catch (error) {
+                    currentUser.log(`❌ Ошибка восстановления данных: ${error.message}`, 'error');
+                    localStorage.removeItem('userData');
+                }
+            }
+            return false;
+        }
+        
+        // Автоматическое подключение без повторной авторизации
+        async function autoConnect() {
+            currentUser.log(`🚀 Автоматическое подключение...`, 'info');
+            
+            currentUser.lastSignalId = Math.floor(Date.now() / 1000) - 60;
+            currentUser.state = 'idle';
+            currentUser.targetUser = null;
+            currentUser.isInitiator = false;
+            currentUser.webrtcInitiated = false;
+            
+            // Подключаемся к WebSocket серверам
+            try {
+                await connectCallsWebSocket();
+            } catch (error) {
+                currentUser.log(`❌ Ошибка подключения к WebSocket: ${error.message}`, 'error');
+                return;
+            }
+            
+            // Обновляем UI
+            updateUI();
+            
+            // Показываем систему друзей
+            showFriendsSection();
+            
+            // Загружаем сообщения из localStorage
+            loadChatMessagesFromStorage();
+            
+            currentUser.log(`📹 Камера и микрофон будут запущены при звонке`, 'info');
+            
+            currentUser.log(`🚀 Пользователь ${currentUser.id} готов к звонкам`, 'success');
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Пытаемся восстановить данные пользователя
+            if (!restoreUserData()) {
+                currentUser.log('🔐 Войдите в систему', 'info');
+            }
+        });
+    </script>
+</body>
+</html>

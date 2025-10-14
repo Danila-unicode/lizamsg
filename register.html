@@ -1,0 +1,236 @@
+<?php
+// Обработка регистрации
+$error = '';
+$success = '';
+
+if ($_POST) {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $confirmPassword = $_POST['confirmPassword'] ?? '';
+    
+    if (empty($username) || empty($password)) {
+        $error = 'Логин и пароль обязательны';
+    } elseif ($password !== $confirmPassword) {
+        $error = 'Пароли не совпадают';
+    } elseif (strlen($username) < 3) {
+        $error = 'Логин должен содержать минимум 3 символа';
+    } elseif (strlen($password) < 5) {
+        $error = 'Пароль должен содержать минимум 5 символов';
+    } else {
+        // Подключение к базе данных
+        $host = 'localhost';
+        $dbname = 'lizaapp_fgdg1c1d551v1d';
+        $username_db = 'lizaapp_q2f112f1c';
+        $password_db = 'mS2rJ7uK5r';
+        
+        try {
+            $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username_db, $password_db);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Проверяем, существует ли пользователь
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            
+            if ($stmt->fetch()) {
+                $error = 'Пользователь уже существует';
+            } else {
+                // Хешируем пароль
+                $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+                
+                // Создаем пользователя
+                $stmt = $pdo->prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)");
+                $stmt->execute([$username, $passwordHash]);
+                
+                $success = 'Аккаунт создан успешно! Теперь вы можете войти в систему.';
+            }
+        } catch(PDOException $e) {
+            $error = 'Ошибка создания пользователя';
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация - WebRTC Звонки</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #fcc;
+        }
+        
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #cfc;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📞 Регистрация</h1>
+            <p>Создайте аккаунт для видеозвонков</p>
+        </div>
+        
+        <?php if ($error): ?>
+        <div class="error"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+        
+        <?php if ($success): ?>
+        <div class="success"><?php echo htmlspecialchars($success); ?></div>
+        <?php endif; ?>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">Логин:</label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="Введите логин" minlength="3" maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Введите пароль" minlength="5">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Подтвердите пароль:</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required 
+                       placeholder="Подтвердите пароль">
+            </div>
+            
+            <button type="submit" class="btn" id="registerBtn">
+                Создать аккаунт
+            </button>
+            
+            <div class="loading" id="loading">
+                Создание аккаунта...
+            </div>
+        </form>
+        
+        <div class="login-link">
+            <p>Уже есть аккаунт? <a href="login.html">Войти</a></p>
+        </div>
+    </div>
+
+</body>
+</html>

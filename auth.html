@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация - WebRTC Контакты</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .auth-header {
+            margin-bottom: 30px;
+        }
+
+        .auth-header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .status.success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .status.error {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .status.info {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .test-users {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .test-users h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .test-user {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #e1e5e9;
+        }
+
+        .test-user-info {
+            flex: 1;
+        }
+
+        .test-user-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .test-user-phone {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .test-user-btn {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .test-user-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .links {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.info {
+            color: #3498db;
+        }
+
+        .log-entry.success {
+            color: #2ecc71;
+        }
+
+        .log-entry.error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>🔐 Авторизация</h1>
+            <p>Войдите в систему WebRTC Контакты</p>
+        </div>
+
+        <div id="statusMessage" class="status" style="display: none;"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="phone">Номер телефона:</label>
+                <input type="tel" id="phone" placeholder="+7(XXX)XXX-XX-XX" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" placeholder="Введите пароль" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="loginBtn">Войти</button>
+        </form>
+
+        <div class="test-users">
+            <h3>🧪 Тестовые пользователи</h3>
+            <div class="test-user">
+                <div class="test-user-info">
+                    <div class="test-user-name">User 1</div>
+                    <div class="test-user-phone">+79182725362</div>
+                </div>
+                <button class="test-user-btn" onclick="fillUser1()">Использовать</button>
+            </div>
+            <div class="test-user">
+                <div class="test-user-info">
+                    <div class="test-user-name">User 2</div>
+                    <div class="test-user-phone">+79182725363</div>
+                </div>
+                <button class="test-user-btn" onclick="fillUser2()">Использовать</button>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="register.html">Регистрация</a>
+            <a href="contacts-app.html">Приложение</a>
+        </div>
+
+        <div class="log" id="log">
+            <div class="log-entry info">[Система] Страница авторизации готова</div>
+        </div>
+    </div>
+
+    <script>
+        // Логирование
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Показать статус
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Заполнить данные User 1
+        function fillUser1() {
+            document.getElementById('phone').value = '+79182725362';
+            document.getElementById('password').value = '12345';
+            log('Заполнены данные User 1', 'info');
+        }
+
+        // Заполнить данные User 2
+        function fillUser2() {
+            document.getElementById('phone').value = '+79182725363';
+            document.getElementById('password').value = '12345';
+            log('Заполнены данные User 2', 'info');
+        }
+
+        // Обработка формы входа
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!phone || !password) {
+                showStatus('Заполните все поля', 'error');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Вход...';
+            
+            try {
+                log(`Попытка входа: ${phone}`, 'info');
+                
+                const response = await fetch('api/login.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                log(`Результат входа: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.success) {
+                    showStatus('Вход выполнен успешно!', 'success');
+                    log('Авторизация успешна', 'success');
+                    
+                    // Перенаправляем на приложение
+                    setTimeout(() => {
+                        window.location.href = 'contacts-app.html';
+                    }, 1500);
+                } else {
+                    showStatus(data.message || 'Ошибка входа', 'error');
+                    log(`Ошибка входа: ${data.message}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus('Ошибка соединения', 'error');
+                log(`Ошибка: ${error.message}`, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Войти';
+            }
+        });
+
+        // Создание тестовых пользователей при загрузке страницы
+        window.addEventListener('load', async function() {
+            try {
+                log('Создание тестовых пользователей...', 'info');
+                
+                const response = await fetch('api/create_test_users.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('Тестовые пользователи готовы', 'success');
+                    data.users.forEach(user => {
+                        log(`${user.name}: ${user.phone} (${user.status})`, 'info');
+                    });
+                } else {
+                    log(`Ошибка создания пользователей: ${data.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка: ${error.message}`, 'error');
+            }
+        });
+
+        log('Страница авторизации загружена', 'success');
+    </script>
+</body>
+</html>
