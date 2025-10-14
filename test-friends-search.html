@@ -169,7 +169,7 @@
             
             <!-- Поиск по друзьям -->
             <div class="friends-search-container">
-                <input type="text" id="friendsSearchInput" placeholder="Поиск по имени или номеру..." class="friends-search-input" oninput="filterFriends()">
+                <input type="text" id="friendsSearchInput" placeholder="Поиск по номеру телефона или имени" class="friends-search-input" oninput="filterFriends()" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
                 <button onclick="clearFriendsSearch()" class="friends-search-clear" title="Очистить поиск">
                     <i class="fas fa-times"></i>
                 </button>

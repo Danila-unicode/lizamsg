@@ -15,7 +15,7 @@
     <!-- Шапка приложения -->
     <div class="app-header">
         <div class="logo">
-            <i class="fas fa-phone"></i> LizaApp
+            <img src="logo.png" alt="LizaApp" class="logo-image">
         </div>
         <div class="user-info" id="headerUserInfo" style="display: none;">
             <div class="user-avatar" id="userAvatar" onclick="openProfile()">
@@ -31,12 +31,13 @@
         <div class="sidebar left-sidebar">
             <div class="tabs navigation-tabs">
                 <div class="tab active" onclick="switchTab('friends')"><i class="fas fa-users"></i> Друзья</div>
+                <div class="tab" onclick="switchTab('search')"><i class="fas fa-search"></i> Поиск</div>
                 <div class="tab" onclick="switchTab('requests')"><i class="fas fa-inbox"></i> Запросы</div>
                 <div class="tab" onclick="switchTab('invitations')"><i class="fas fa-paper-plane"></i> Приглашения</div>
             </div>
             <div class="tab-content sidebar-content">
-                <!-- Поиск пользователей -->
-                <div class="search-section user-search">
+                <!-- Таб Поиск -->
+                <div id="searchTab" class="tab-panel search-panel" style="display: none;">
                     <h3><i class="fas fa-search"></i> Поиск по номеру телефона</h3>
                     <div class="search-input-container" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                         <input type="text" id="searchUsername" placeholder="+79991234567" style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
@@ -56,7 +57,7 @@
                     
                     <!-- Поиск по друзьям -->
                     <div class="friends-search-container">
-                        <input type="text" id="friendsSearchInput" placeholder="Поиск по имени или номеру..." class="friends-search-input" oninput="filterFriends()">
+                        <input type="text" id="friendsSearchInput" placeholder="Поиск по номеру телефона или имени" class="friends-search-input" oninput="filterFriends()" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
                     </div>
                     
                     <div id="friendsList" class="friends-list"></div>
@@ -168,11 +169,16 @@
             <!-- Окно чата в правой части -->
             <div id="chatContainer" class="chat-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
                 <!-- Заголовок чата -->
-                <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 24px; font-weight: 600;">💬 Чат с <span id="chatFriendName">Другом</span></h3>
-                        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Соединение установлено</p>
-                    </div>
+                    <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div id="chatFriendAvatar" style="width: 50px; height: 50px; border-radius: 50%; background: #34495e; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h3 style="margin: 0; font-size: 24px; font-weight: 600;"> Чат с <span id="chatFriendName">Другом</span></h3>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;" id="chatFriendStatus">Соединение установлено</p>
+                            </div>
+                        </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
                     <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-video"></i></button>
                     <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-phone"></i></button>
@@ -183,9 +189,9 @@
                 <!-- Область сообщений -->
             <div style="flex: 1; padding: 5px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
                     <!-- Статус подключения -->
-                    <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
+                    <!-- <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
                         Подключение к чат-серверу...
-                    </div>
+                    </div> -->
                     
                     <!-- Сообщения чата -->
                     <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; margin: 10px 0;">
@@ -284,7 +290,7 @@
                 </div>
                 
                 <!-- Область видео -->
-                <div style="flex: 1; padding: 30px; */ display: flex; */ flex-direction: column; gap: 30px; justify-content: center; align-items: center; background: #f8f9fa; height: calc(100% - 140px);">
+                <div style="flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 30px; justify-content: center; align-items: center; background: #f8f9fa; height: calc(100% - 140px);">
                     <!-- Видео контейнер -->
                     <div style="display: flex; gap: 30px; justify-content: center; align-items: center;">
                         <!-- Локальное видео -->

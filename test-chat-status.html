@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест статуса собеседника в чате</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .chat-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #34495e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+        .chat-info h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .chat-info p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status-test {
+            background: #e8f4fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест статуса собеседника в чате</h1>
+    
+    <div class="test-container">
+        <h2>📱 Имитация заголовка чата</h2>
+        <div class="chat-header">
+            <div class="chat-avatar" id="chatFriendAvatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="chat-info">
+                <h3>Чат с <span id="chatFriendName">Другом</span></h3>
+                <p id="chatFriendStatus">Соединение установлено</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔧 Тестирование функций</h2>
+        
+        <div class="test-section">
+            <h4>1. Тест загрузки статуса</h4>
+            <p>Тестируем функцию <code>loadChatFriendStatus()</code> с разными пользователями:</p>
+            <button onclick="testLoadStatus('+79182725362')">Тест статуса для +79182725362</button>
+            <button onclick="testLoadStatus('+79298290753')">Тест статуса для +79298290753</button>
+            <button onclick="testLoadStatus('testuser')">Тест статуса для testuser</button>
+        </div>
+
+        <div class="test-section">
+            <h4>2. Тест с несуществующим пользователем</h4>
+            <button onclick="testLoadStatus('nonexistent')">Тест с несуществующим пользователем</button>
+        </div>
+
+        <div class="test-section">
+            <h4>3. Тест с некорректным API</h4>
+            <button onclick="testLoadStatusWithError()">Тест с ошибкой API</button>
+        </div>
+
+        <div class="test-section">
+            <h4>4. Очистка статуса</h4>
+            <button onclick="clearStatus()">Сбросить статус</button>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 Лог тестирования</h2>
+        <div id="testLog" class="log"></div>
+        <button onclick="clearLog()">Очистить лог</button>
+    </div>
+
+    <script>
+        // Функция для логирования
+        function log(message) {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        // Очистка лога
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+        }
+
+        // Очистка статуса
+        function clearStatus() {
+            document.getElementById('chatFriendStatus').textContent = 'Соединение установлено';
+            log('🧹 Статус очищен');
+        }
+
+        // Тест загрузки статуса
+        async function testLoadStatus(friendUsername) {
+            try {
+                log(`🔄 Тестируем загрузку статуса для ${friendUsername}...`);
+                
+                // Обновляем имя в заголовке
+                document.getElementById('chatFriendName').textContent = friendUsername;
+                
+                // Получаем данные пользователя с сервера
+                const response = await fetch(`avtr/api/get_user_data.php?username=${encodeURIComponent(friendUsername)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const userData = await response.json();
+                log(`📊 Ответ API для ${friendUsername}: ${JSON.stringify(userData)}`);
+                
+                if (userData.success && userData.user) {
+                    const status = userData.user.user_status || 'В сети';
+                    log(`✅ Статус ${friendUsername}: ${status}`);
+                    
+                    // Обновляем статус в заголовке чата
+                    const statusElement = document.getElementById('chatFriendStatus');
+                    if (statusElement) {
+                        statusElement.textContent = status;
+                    }
+                } else {
+                    log(`❌ Не удалось получить статус для ${friendUsername}: ${userData.message || 'Неизвестная ошибка'}`);
+                    const statusElement = document.getElementById('chatFriendStatus');
+                    if (statusElement) {
+                        statusElement.textContent = 'Соединение установлено';
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка загрузки статуса для ${friendUsername}: ${error.message}`);
+                const statusElement = document.getElementById('chatFriendStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'Соединение установлено';
+                }
+            }
+        }
+
+        // Тест с ошибкой API
+        async function testLoadStatusWithError() {
+            try {
+                log(`🔄 Тестируем ошибку API...`);
+                
+                // Пытаемся получить данные с несуществующего эндпоинта
+                const response = await fetch(`avtr/api/nonexistent.php?username=test`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Ожидаемая ошибка API: ${error.message}`);
+                const statusElement = document.getElementById('chatFriendStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'Соединение установлено';
+                }
+            }
+        }
+
+        // Инициализация
+        log('🚀 Тест статуса собеседника в чате запущен');
+        log('💡 Используйте кнопки выше для тестирования различных сценариев');
+    </script>
+</body>
+</html>

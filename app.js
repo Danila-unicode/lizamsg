@@ -1517,6 +1517,14 @@
             document.getElementById('chatFriendName').textContent = friendUsername;
             document.getElementById('chatContainer').style.display = 'block';
             
+            // Загружаем аватар друга в заголовок чата
+            loadChatFriendAvatar(friendUsername);
+            
+            // Загружаем статус друга в заголовок чата (неблокирующе)
+            setTimeout(() => {
+                loadChatFriendStatus(friendUsername);
+            }, 100);
+            
             // Сохраняем текущий чат в localStorage
             localStorage.setItem('currentChatFriend', friendUsername);
             console.log(`💾 Сохранен текущий чат: ${friendUsername}`);
@@ -3823,15 +3831,19 @@
         // Обновление статуса чата
         function updateChatStatus(message, type) {
             const status = document.getElementById('chatStatus');
-            status.textContent = message;
-            status.className = `status ${type}`;
-            status.style.cssText = `
-                padding: 10px 20px;
-                background: ${type === 'connected' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd'};
-                color: ${type === 'connected' ? '#155724' : type === 'error' ? '#721c24' : '#856404'};
-                border-bottom: 1px solid ${type === 'connected' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#ffeaa7'};
-                font-size: 14px;
-            `;
+            if (status) {
+                status.textContent = message;
+                status.className = `status ${type}`;
+                status.style.cssText = `
+                    padding: 10px 20px;
+                    background: ${type === 'connected' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd'};
+                    color: ${type === 'connected' ? '#155724' : type === 'error' ? '#721c24' : '#856404'};
+                    border-bottom: 1px solid ${type === 'connected' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#ffeaa7'};
+                    font-size: 14px;
+                `;
+            } else {
+                console.log(`📊 Статус чата: ${message} (тип: ${type})`);
+            }
         }
         
         // Загрузка истории сообщений из IndexedDB с ленивой загрузкой
@@ -5868,6 +5880,8 @@
             if (tabName === 'friends') {
                 document.getElementById('friendsTab').style.display = 'block';
                 loadFriendsData();
+            } else if (tabName === 'search') {
+                document.getElementById('searchTab').style.display = 'block';
             } else if (tabName === 'requests') {
                 document.getElementById('requestsTab').style.display = 'block';
                 loadFriendsData();
@@ -6280,6 +6294,91 @@
                     }
                 } catch (error) {
                     console.error(`❌ Ошибка загрузки аватара для ID ${userId}:`, error);
+                }
+            }
+        }
+        
+        // Защита от повторной загрузки аватаров
+        const loadingAvatars = new Set();
+        
+        // Загрузка аватара друга в заголовок чата
+        async function loadChatFriendAvatar(friendUsername) {
+            try {
+                // Проверяем, не загружается ли уже аватар для этого пользователя
+                if (loadingAvatars.has(friendUsername)) {
+                    console.log(`⚠️ Аватар для ${friendUsername} уже загружается, пропускаем`);
+                    return;
+                }
+                
+                loadingAvatars.add(friendUsername);
+                
+                // Находим друга в списке друзей
+                const friend = friendsData.friends.find(f => f.username === friendUsername);
+                if (!friend) {
+                    console.log(`⚠️ Друг ${friendUsername} не найден в списке друзей`);
+                    loadingAvatars.delete(friendUsername);
+                    return;
+                }
+                
+                console.log(`🖼️ Загружаем аватар для чата с ${friendUsername} (ID: ${friend.contact_user_id})`);
+                
+                // Получаем аватар из кэша
+                const avatarData = await getCachedAvatar(friend.contact_user_id, friendUsername);
+                
+                const avatarElement = document.getElementById('chatFriendAvatar');
+                if (avatarElement) {
+                    if (avatarData) {
+                        avatarElement.innerHTML = `<img src="${avatarData}" alt="Аватар ${friendUsername}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                        console.log(`✅ Аватар для чата с ${friendUsername} загружен`);
+                    } else {
+                        avatarElement.innerHTML = `<i class="fas fa-user"></i>`;
+                        console.log(`⚠️ Аватар для чата с ${friendUsername} не найден, показываем placeholder`);
+                    }
+                }
+                
+                loadingAvatars.delete(friendUsername);
+            } catch (error) {
+                console.error(`❌ Ошибка загрузки аватара для чата с ${friendUsername}:`, error);
+                loadingAvatars.delete(friendUsername);
+            }
+        }
+
+        // Загрузка статуса собеседника из БД
+        async function loadChatFriendStatus(friendUsername) {
+            try {
+                console.log(`🔄 Загружаем статус собеседника для ${friendUsername}...`);
+                
+                // Получаем данные пользователя с сервера
+                const response = await fetch(`avtr/api/get_user_data.php?username=${encodeURIComponent(friendUsername)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const userData = await response.json();
+                console.log(`📊 Данные пользователя ${friendUsername}:`, userData);
+                
+                if (userData.success && userData.user) {
+                    const status = userData.user.user_status || 'В сети';
+                    console.log(`✅ Статус ${friendUsername}: ${status}`);
+                    
+                    // Обновляем статус в заголовке чата
+                    const statusElement = document.getElementById('chatFriendStatus');
+                    if (statusElement) {
+                        statusElement.textContent = status;
+                    }
+                } else {
+                    console.log(`❌ Не удалось получить статус для ${friendUsername}`);
+                    const statusElement = document.getElementById('chatFriendStatus');
+                    if (statusElement) {
+                        statusElement.textContent = 'Соединение установлено';
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`❌ Ошибка загрузки статуса собеседника для ${friendUsername}:`, error);
+                const statusElement = document.getElementById('chatFriendStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'Соединение установлено';
                 }
             }
         }
