@@ -1,3 +1,4 @@
+/* Версия CSS: 1.8.0 - Добавлена система кэширования аватаров */
 /* Стили для страниц авторизации и регистрации */
 * {
     box-sizing: border-box;
@@ -1729,5 +1730,206 @@ input[autocomplete="new-password"]:-webkit-autofill {
         height: 32px;
         flex-shrink: 0;
         font-size: 12px;
+    }
+}
+
+/* Стили для окна входящего звонка */
+.incoming-call-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.incoming-call-container {
+    background: #f5f5f5;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    min-height: 500px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 20px;
+    position: relative;
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Иконка телефона с волнами */
+.call-icon-container {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.call-icon {
+    font-size: 48px;
+    color: #007bff;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Статус звонка */
+.call-status {
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Контейнер аватара */
+.caller-avatar-container {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.caller-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.caller-avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.caller-avatar-placeholder i {
+    font-size: 48px;
+    color: #999;
+}
+
+/* Имя звонящего */
+.caller-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+/* Кнопки действий */
+.call-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    width: 100%;
+    max-width: 300px;
+}
+
+.accept-btn {
+    flex: 1;
+    background: #f0f0f0;
+    border: 2px solid #ccc;
+    border-radius: 25px;
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #333;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.accept-btn:hover {
+    background: #e0e0e0;
+    border-color: #999;
+}
+
+.accept-btn i {
+    font-size: 20px;
+}
+
+.decline-btn {
+    flex: 1;
+    background: #ff4444;
+    border: 2px solid #ff4444;
+    border-radius: 25px;
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.decline-btn:hover {
+    background: #e03e3e;
+    border-color: #e03e3e;
+}
+
+.decline-btn i {
+    font-size: 20px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 480px) {
+    .incoming-call-container {
+        max-width: 100%;
+        height: auto;
+        min-height: 400px;
+        border-radius: 20px 20px 0 0;
+        padding: 30px 15px 15px;
+        margin: 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+    
+    .caller-avatar,
+    .caller-avatar-placeholder {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .caller-name {
+        font-size: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .call-actions {
+        gap: 15px;
+        max-width: 280px;
+    }
+    
+    .accept-btn,
+    .decline-btn {
+        padding: 12px 15px;
+        font-size: 13px;
+    }
+    
+    .accept-btn i,
+    .decline-btn i {
+        font-size: 18px;
     }
 }

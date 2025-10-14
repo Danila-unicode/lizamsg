@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест кэширования аватаров</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .avatar-test {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .avatar-test img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест системы кэширования аватаров</h1>
+    
+    <div class="test-section">
+        <h2>📊 Статус системы</h2>
+        <div id="systemStatus">Проверяем...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>👥 Тест аватаров друзей</h2>
+        <button onclick="testFriendsAvatars()">Загрузить аватары друзей</button>
+        <div id="friendsTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔄 Тест кэширования</h2>
+        <button onclick="testCaching()">Тест кэширования</button>
+        <div id="cacheTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📱 Тест отображения</h2>
+        <div class="avatar-test">
+            <div id="testAvatar1" style="width: 50px; height: 50px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-user"></i>
+            </div>
+            <span>Тестовый аватар 1</span>
+        </div>
+        <div class="avatar-test">
+            <div id="testAvatar2" style="width: 50px; height: 50px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-user"></i>
+            </div>
+            <span>Тестовый аватар 2</span>
+        </div>
+    </div>
+
+    <!-- Подключаем необходимые скрипты -->
+    <script src="js/contacts-handler.js"></script>
+    <script>
+        // Проверяем статус системы
+        async function checkSystemStatus() {
+            const statusDiv = document.getElementById('systemStatus');
+            try {
+                // Проверяем IndexedDB
+                await initContactsDB();
+                statusDiv.innerHTML = '<div class="status success">✅ IndexedDB инициализирована</div>';
+                
+                // Проверяем API
+                const response = await fetch('api/get_contacts.php');
+                if (response.ok) {
+                    statusDiv.innerHTML += '<div class="status success">✅ API контактов доступен</div>';
+                } else {
+                    statusDiv.innerHTML += '<div class="status error">❌ API контактов недоступен</div>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Ошибка инициализации: ' + error.message + '</div>';
+            }
+        }
+        
+        // Тест загрузки аватаров друзей
+        async function testFriendsAvatars() {
+            const testDiv = document.getElementById('friendsTest');
+            testDiv.innerHTML = '<div class="status info">🔄 Загружаем аватары друзей...</div>';
+            
+            try {
+                // Проверяем, есть ли данные друзей в глобальной переменной
+                if (typeof friendsData === 'undefined' || !friendsData.friends || friendsData.friends.length === 0) {
+                    testDiv.innerHTML += '<div class="status error">❌ Данные друзей не загружены. Сначала авторизуйтесь в основном приложении.</div>';
+                    return;
+                }
+                
+                const friends = friendsData.friends;
+                testDiv.innerHTML += `<div class="status info">📋 Найдено ${friends.length} друзей</div>`;
+                
+                if (friends.length > 0) {
+                    testDiv.innerHTML += `<div class="status info">👥 Друзья: ${friends.map(f => f.username).join(', ')}</div>`;
+                }
+                
+                // Загружаем аватары
+                await preloadFriendsAvatars();
+                testDiv.innerHTML += '<div class="status success">✅ Аватары друзей загружены в кэш</div>';
+            } catch (error) {
+                testDiv.innerHTML += '<div class="status error">❌ Ошибка загрузки: ' + error.message + '</div>';
+            }
+        }
+        
+        // Тест кэширования
+        async function testCaching() {
+            const testDiv = document.getElementById('cacheTest');
+            testDiv.innerHTML = '<div class="status info">🔄 Тестируем кэширование...</div>';
+            
+            try {
+                // Получаем список друзей
+                const response = await fetch('api/get_contacts.php');
+                const friends = await response.json();
+                
+                if (friends.length > 0) {
+                    const friend = friends[0];
+                    testDiv.innerHTML += `<div class="status info">📋 Тестируем с пользователем: ${friend.username}</div>`;
+                    
+                    // Тест получения из кэша
+                    const startTime = Date.now();
+                    const avatarData = await getCachedAvatar(friend.user_id, friend.username);
+                    const endTime = Date.now();
+                    
+                    if (avatarData) {
+                        testDiv.innerHTML += `<div class="status success">✅ Аватар получен из кэша за ${endTime - startTime}мс</div>`;
+                        
+                        // Отображаем аватар
+                        const avatarDiv = document.getElementById('testAvatar1');
+                        avatarDiv.innerHTML = `<img src="${avatarData}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    } else {
+                        testDiv.innerHTML += '<div class="status error">❌ Аватар не найден в кэше</div>';
+                    }
+                } else {
+                    testDiv.innerHTML = '<div class="status error">❌ Нет друзей для тестирования</div>';
+                }
+            } catch (error) {
+                testDiv.innerHTML = '<div class="status error">❌ Ошибка тестирования: ' + error.message + '</div>';
+            }
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSystemStatus();
+        });
+    </script>
+</body>
+</html>

@@ -359,12 +359,35 @@
         
         <!-- Окно входящего звонка -->
         <div id="incomingCallModal" class="incoming-call-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
-            <div style="background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                <h2 style="color: #333; margin-bottom: 20px;"><i class="fas fa-phone"></i> Входящий звонок</h2>
-                <p style="font-size: 18px; margin-bottom: 30px;">Вам звонит: <strong id="callerName"></strong></p>
-                <div style="display: flex; gap: 20px; justify-content: center;">
-                    <button onclick="acceptIncomingCall()" style="background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;"><i class="fas fa-check"></i> Принять</button>
-                    <button onclick="rejectIncomingCall()" style="background: #f44336; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer;"><i class="fas fa-times"></i> Отклонить</button>
+            <div class="incoming-call-container">
+                <!-- Иконка телефона с волнами -->
+                <div class="call-icon-container">
+                    <i class="fas fa-phone call-icon"></i>
+                </div>
+                
+                <!-- Статус звонка -->
+                <div class="call-status">Входящий вызов...</div>
+                
+                <!-- Аватар звонящего -->
+                <div class="caller-avatar-container">
+                    <div class="caller-avatar-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                
+                <!-- Имя звонящего -->
+                <div class="caller-name" id="callerName">Загрузка...</div>
+                
+                <!-- Кнопки действий -->
+                <div class="call-actions">
+                    <button onclick="acceptIncomingCall()" class="accept-btn">
+                        <i class="fas fa-phone"></i>
+                        <span>Принять</span>
+                    </button>
+                    <button onclick="rejectIncomingCall()" class="decline-btn">
+                        <i class="fas fa-phone-slash"></i>
+                        <span>Отклонить</span>
+                    </button>
                 </div>
             </div>
         </div>

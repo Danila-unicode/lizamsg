@@ -277,6 +277,19 @@
                     }));
                     
                     currentUser.log(`✅ Авторизация успешна`, 'success');
+                    
+                    // Предзагружаем аватар текущего пользователя
+                    const currentUsername = username;
+                    const currentUserId = data.userId;
+                    loadAndCacheAvatar(currentUserId, currentUsername).then(() => {
+                        console.log('✅ Аватар текущего пользователя загружен в кэш');
+                        // Обновляем отображение аватара
+                        displayCachedAvatar('userAvatar', currentUserId, currentUsername);
+                    }).catch(error => {
+                        console.error('Ошибка загрузки аватара текущего пользователя:', error);
+                    });
+                    
+                    // Предзагрузка аватаров будет происходить после загрузки данных друзей
                         } else {
                     currentUser.log(`❌ Ошибка авторизации: ${data.error}`, 'error');
                     return;
@@ -5247,6 +5260,14 @@
             } catch (error) {
                 currentUser.log(`❌ Ошибка загрузки данных друзей: ${error.message}`, 'error');
             }
+            
+            // Предзагружаем аватары друзей после загрузки данных
+            if (friendsData.friends && friendsData.friends.length > 0) {
+                console.log('🚀 Начинаем предзагрузку аватаров после загрузки данных друзей');
+                preloadFriendsAvatars().catch(error => {
+                    console.error('Ошибка предзагрузки аватаров:', error);
+                });
+            }
         }
         
         // Обновление списка друзей
@@ -5299,13 +5320,20 @@
                 if (!userId) continue;
 
                 try {
-                    // Загружаем данные пользователя
-                    const response = await fetch(`avtr/api/get_user_data.php?user_id=${userId}`);
-                    const result = await response.json();
-                    
-                    if (result.success && result.user.avatar_path) {
-                        // Заменяем содержимое на аватар
-                        avatarDiv.innerHTML = `<img src="${result.user.avatar_path}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    // Получаем username из данных друзей
+                    const friend = friendsData.friends.find(f => f.contact_user_id == userId);
+                    if (friend) {
+                        console.log(`🔄 Загружаем аватар для друга ${friend.username} (ID: ${userId})`);
+                        // Используем кэшированный аватар
+                        const avatarData = await getCachedAvatar(userId, friend.username);
+                        if (avatarData) {
+                            avatarDiv.innerHTML = `<img src="${avatarData}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                            console.log(`✅ Аватар для ${friend.username} отображен`);
+                        } else {
+                            console.log(`⚠️ Аватар для ${friend.username} не найден в кэше`);
+                        }
+                    } else {
+                        console.log(`⚠️ Друг с ID ${userId} не найден в списке друзей`);
                     }
                 } catch (error) {
                     console.error('Ошибка загрузки аватара для user_id', userId, error);
@@ -5313,6 +5341,36 @@
             }
         }
         
+        // Универсальная функция для отображения аватара с кэшированием
+        async function displayCachedAvatar(elementId, userId, username) {
+            try {
+                console.log(`🔄 Загружаем аватар для ${username} (ID: ${userId})`);
+                
+                // Получаем аватар из кэша или загружаем с сервера
+                const avatarData = await getCachedAvatar(userId, username);
+                
+                if (avatarData) {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerHTML = `<img src="${avatarData}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                        console.log(`✅ Аватар для ${username} отображен из кэша`);
+                    }
+                } else {
+                    console.log(`⚠️ Аватар для ${username} не найден, показываем placeholder`);
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerHTML = '<i class="fas fa-user-circle"></i>';
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ Ошибка отображения аватара для ${username}:`, error);
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.innerHTML = '<i class="fas fa-user-circle"></i>';
+                }
+            }
+        }
+
         // Обновление списка входящих запросов
         function updateRequestsList() {
             console.log('🔄 updateRequestsList вызвана');
@@ -5338,6 +5396,39 @@
             `).join('');
             
             requestsList.innerHTML = requestsHtml;
+            
+            // Загружаем аватары для запросов
+            loadRequestsAvatars();
+        }
+        
+        // Функция для загрузки аватаров запросов
+        async function loadRequestsAvatars() {
+            const requestAvatars = document.querySelectorAll('.request-avatar');
+            
+            for (let avatarDiv of requestAvatars) {
+                const userId = avatarDiv.getAttribute('data-user-id');
+                if (!userId) continue;
+
+                try {
+                    // Получаем username из данных запросов
+                    const request = friendsData.requests.find(r => r.user_id == userId);
+                    if (request) {
+                        console.log(`🔄 Загружаем аватар для запроса ${request.username} (ID: ${userId})`);
+                        // Используем кэшированный аватар
+                        const avatarData = await getCachedAvatar(userId, request.username);
+                        if (avatarData) {
+                            avatarDiv.innerHTML = `<img src="${avatarData}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                            console.log(`✅ Аватар для ${request.username} отображен`);
+                        } else {
+                            console.log(`⚠️ Аватар для ${request.username} не найден в кэше`);
+                        }
+                    } else {
+                        console.log(`⚠️ Запрос с ID ${userId} не найден в списке запросов`);
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки аватара для user_id', userId, error);
+                }
+            }
         }
         
         // Обновление списка отправленных запросов
@@ -5391,20 +5482,9 @@
                 
                 if (!userId) return;
 
-                // Загружаем данные пользователя из БД
-                fetch(`avtr/api/get_user_data.php?user_id=${userId}`)
-                    .then(response => response.json())
-                    .then(result => {
-                        const userAvatar = document.getElementById('userAvatar');
-                        if (result.success && result.user.avatar_path) {
-                            userAvatar.innerHTML = `<img src="${result.user.avatar_path}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-                        } else {
-                            userAvatar.innerHTML = '<i class="fas fa-user-circle"></i>';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Ошибка загрузки аватара:', error);
-                    });
+                // Загружаем аватар из кэша
+                const username = data.username;
+                displayCachedAvatar('userAvatar', userId, username);
             } catch (error) {
                 console.error('Ошибка парсинга userData:', error);
             }
