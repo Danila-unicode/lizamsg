@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест поиска по друзьям</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .test-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #1976D2;
+        }
+        
+        .test-results {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e8;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .test-error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        
+        .friends-search-container {
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .friends-search-input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .friends-search-input:focus {
+            border-color: #2196F3;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        .friends-search-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .friends-search-clear:hover {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .friends-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            background: #fafafa;
+        }
+        
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border: 1px solid #eee;
+            margin: 3px 0;
+            border-radius: 3px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .friend-item:hover {
+            background: #f0f8ff;
+        }
+        
+        .friend-item .username {
+            font-weight: bold;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1><i class="fas fa-search"></i> Тест поиска по друзьям</h1>
+        
+        <div class="test-section">
+            <h3>🔧 Настройка тестовых данных</h3>
+            <button class="test-button" onclick="setupTestData()">
+                <i class="fas fa-database"></i> Создать тестовые данные
+            </button>
+            <button class="test-button" onclick="loadFriendsData()">
+                <i class="fas fa-users"></i> Загрузить друзей
+            </button>
+            <div id="setupResults" class="test-results" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 Тест поиска</h3>
+            
+            <!-- Поиск по друзьям -->
+            <div class="friends-search-container">
+                <input type="text" id="friendsSearchInput" placeholder="Поиск по имени или номеру..." class="friends-search-input" oninput="filterFriends()">
+                <button onclick="clearFriendsSearch()" class="friends-search-clear" title="Очистить поиск">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="friendsList" class="friends-list">
+                <p style="text-align: center; color: #666; padding: 20px;">
+                    <i class="fas fa-users"></i> Список друзей пуст
+                </p>
+            </div>
+            
+            <button class="test-button" onclick="testSearchScenarios()">
+                <i class="fas fa-vial"></i> Тестовые сценарии поиска
+            </button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Результаты тестов</h3>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <script src="js/contacts-handler.js"></script>
+    <script>
+        // Глобальные переменные для тестирования
+        let friendsData = {
+            friends: []
+        };
+        
+        // Алиас для функции saveContactName
+        async function saveContact(phone, name) {
+            return await saveContactName(phone, name);
+        }
+        
+        // Алиас для функции getContactName (если не доступна)
+        async function getContactName(phone) {
+            if (typeof window.getContactName === 'function') {
+                return await window.getContactName(phone);
+            }
+            // Если функция не доступна, используем локальную реализацию
+            if (!contactsDB) {
+                await initContactsDB();
+            }
+            
+            return new Promise((resolve, reject) => {
+                const transaction = contactsDB.transaction(['contacts'], 'readonly');
+                const store = transaction.objectStore('contacts');
+                const request = store.get(phone);
+                
+                request.onsuccess = () => {
+                    if (request.result) {
+                        resolve(request.result.name);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Настройка тестовых данных
+        async function setupTestData() {
+            const resultsDiv = document.getElementById('setupResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.className = 'test-results';
+            
+            try {
+                console.log('🔧 Настройка тестовых данных...');
+                
+                // Инициализируем IndexedDB
+                await initContactsDB();
+                console.log('✅ IndexedDB инициализирована');
+                
+                // Добавляем тестовые контакты
+                await addTestContacts();
+                console.log('✅ Тестовые контакты добавлены');
+                
+                // Создаем тестовых друзей
+                friendsData = {
+                    friends: [
+                        {
+                            contact_user_id: 1,
+                            username: '+79182725362',
+                            status: 'active'
+                        },
+                        {
+                            contact_user_id: 2,
+                            username: '+79298290753',
+                            status: 'active'
+                        },
+                        {
+                            contact_user_id: 3,
+                            username: '+79001234567',
+                            status: 'active'
+                        }
+                    ]
+                };
+                
+                resultsDiv.innerHTML = `
+                    <h4>✅ Тестовые данные созданы</h4>
+                    <p><strong>Друзья:</strong> ${friendsData.friends.length}</p>
+                    <p><strong>Контакты в IndexedDB:</strong> 3</p>
+                    <ul>
+                        <li>+79182725362 → Иван Петров</li>
+                        <li>+79298290753 → Мария Сидорова</li>
+                        <li>+79001234567 → Алексей Козлов</li>
+                    </ul>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Ошибка настройки:', error);
+                resultsDiv.className = 'test-results test-error';
+                resultsDiv.innerHTML = `<h4>❌ Ошибка настройки</h4><p>${error.message}</p>`;
+            }
+        }
+        
+        // Добавление тестовых контактов
+        async function addTestContacts() {
+            const contacts = [
+                { phone: '+79182725362', name: 'Иван Петров' },
+                { phone: '+79298290753', name: 'Мария Сидорова' },
+                { phone: '+79001234567', name: 'Алексей Козлов' }
+            ];
+            
+            for (const contact of contacts) {
+                await saveContact(contact.phone, contact.name);
+            }
+        }
+        
+        // Загрузка данных друзей
+        async function loadFriendsData() {
+            const resultsDiv = document.getElementById('setupResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.className = 'test-results';
+            
+            try {
+                console.log('📥 Загрузка данных друзей...');
+                
+                // Имитируем загрузку друзей
+                updateFriendsList();
+                
+                resultsDiv.innerHTML = `
+                    <h4>✅ Данные друзей загружены</h4>
+                    <p><strong>Найдено друзей:</strong> ${friendsData.friends.length}</p>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки:', error);
+                resultsDiv.className = 'test-results test-error';
+                resultsDiv.innerHTML = `<h4>❌ Ошибка загрузки</h4><p>${error.message}</p>`;
+            }
+        }
+        
+        // Обновление списка друзей
+        async function updateFriendsList() {
+            const friendsList = document.getElementById('friendsList');
+            
+            if (!friendsData.friends || friendsData.friends.length === 0) {
+                friendsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;"><i class="fas fa-users"></i> Список друзей пуст</p>';
+                return;
+            }
+            
+            let friendsHtml = '';
+            
+            for (const friend of friendsData.friends) {
+                try {
+                    const contactName = await getContactName(friend.username);
+                    const displayName = contactName || friend.username;
+                    
+                    friendsHtml += `
+                        <div class="friend-item" onclick="selectFriend('${friend.username}')">
+                            <div class="username">
+                                <span class="friend-display-name" data-phone="${friend.username}">${displayName}</span>
+                                <br>
+                                <small style="color: #999; font-size: 11px;">${friend.username}</small>
+                            </div>
+                            <div class="actions">
+                                <button class="btn-primary btn-small" title="Позвонить">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                                <button class="btn-info btn-small" title="Видеозвонок">
+                                    <i class="fas fa-video"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error(`⚠️ Ошибка отображения друга ${friend.username}:`, error);
+                }
+            }
+            
+            friendsList.innerHTML = friendsHtml;
+        }
+        
+        // Фильтрация друзей по поисковому запросу
+        async function filterFriends() {
+            const searchInput = document.getElementById('friendsSearchInput');
+            let searchQuery = searchInput.value.toLowerCase().trim();
+            
+            // Убираем символ + из поискового запроса
+            searchQuery = searchQuery.replace(/\+/g, '');
+            
+            const friendsList = document.getElementById('friendsList');
+            
+            if (!searchQuery) {
+                updateFriendsList();
+                return;
+            }
+            
+            console.log(`🔍 Поиск по друзьям: "${searchQuery}" (символ + игнорируется)`);
+            
+            try {
+                const allFriends = friendsData.friends || [];
+                const filteredFriends = [];
+                
+                for (const friend of allFriends) {
+                    let matches = false;
+                    const phoneNumber = friend.username;
+                    
+                    // Отладочная информация
+                    console.log(`📞 Проверяем номер: ${phoneNumber}, поиск: "${searchQuery}"`);
+                    
+                    // Поиск по номеру телефона (упрощенная логика)
+                    if (friend.username) {
+                        // Убираем + из номера для сравнения
+                        const phoneWithoutPlus = phoneNumber.replace(/\+/g, '');
+                        
+                        // Поиск по номеру без +
+                        if (phoneWithoutPlus.includes(searchQuery)) {
+                            matches = true;
+                            console.log(`✅ Найдено совпадение: ${phoneWithoutPlus} содержит ${searchQuery}`);
+                        }
+                        
+                        // Поиск по последним цифрам (без кода страны)
+                        if (!matches) {
+                            const lastDigits = phoneWithoutPlus.replace(/^7/, ''); // Убираем 7
+                            if (lastDigits.includes(searchQuery)) {
+                                matches = true;
+                                console.log(`✅ Найдено совпадение без кода страны: ${lastDigits} содержит ${searchQuery}`);
+                            }
+                        }
+                        
+                        if (!matches) {
+                            console.log(`❌ Не найдено совпадений для ${phoneNumber}`);
+                        }
+                    }
+                    
+                    // Поиск по имени из записной книжки
+                    if (!matches && friend.username) {
+                        try {
+                            const contactName = await getContactName(friend.username);
+                            if (contactName && contactName.toLowerCase().includes(searchQuery)) {
+                                matches = true;
+                            }
+                        } catch (error) {
+                            console.warn(`⚠️ Ошибка получения имени контакта для ${friend.username}:`, error);
+                        }
+                    }
+                    
+                    if (matches) {
+                        filteredFriends.push(friend);
+                    }
+                }
+                
+                displayFilteredFriends(filteredFriends, searchQuery);
+                
+            } catch (error) {
+                console.error('❌ Ошибка фильтрации друзей:', error);
+                friendsList.innerHTML = '<p style="color: red; text-align: center;">Ошибка поиска</p>';
+            }
+        }
+        
+        // Отображение отфильтрованных друзей
+        async function displayFilteredFriends(friends, searchQuery) {
+            const friendsList = document.getElementById('friendsList');
+            
+            if (friends.length === 0) {
+                friendsList.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #666;">
+                        <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; opacity: 0.5;"></i>
+                        <p>По запросу "<strong>${searchQuery}</strong>" ничего не найдено</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Попробуйте изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Используем тот же стиль, что и обычный список друзей
+            const friendsHtml = friends.map(friend => {
+                return `
+                    <div class="friend-item" data-friend="${friend.username}" onclick="selectFriend('${friend.username}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='white'">
+                        <div class="username" style="position: relative;">
+                            <div class="friend-avatar" style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #ddd; margin-right: 8px; vertical-align: middle; text-align: center; line-height: 20px; font-size: 12px; color: #666;" data-user-id="${friend.contact_user_id}">
+                                <i class="fas fa-user" style="font-size: 10px;"></i>
+                            </div>
+                            <span class="friend-display-name" data-phone="${friend.username}">${friend.username}</span>
+                        </div>
+                        <div class="actions" onclick="event.stopPropagation()">
+                            <div class="call-buttons">
+                                <button onclick="selectFriend('${friend.username}')" class="btn-primary btn-small" title="Видеозвонок"><i class="fas fa-video"></i> Видеозвонок</button>
+                                <button onclick="selectFriend('${friend.username}')" class="btn-secondary btn-small" title="Аудиозвонок"><i class="fas fa-microphone"></i> Аудиозвонок</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            friendsList.innerHTML = friendsHtml;
+        }
+        
+        // Подсветка найденного текста
+        function highlightSearchText(text, searchQuery) {
+            if (!searchQuery) return text;
+            
+            const regex = new RegExp(`(${searchQuery})`, 'gi');
+            return text.replace(regex, '<mark style="background: #ffeb3b; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+        }
+        
+        // Очистка поиска
+        function clearFriendsSearch() {
+            const searchInput = document.getElementById('friendsSearchInput');
+            searchInput.value = '';
+            updateFriendsList();
+            searchInput.focus();
+        }
+        
+        // Выбор друга
+        function selectFriend(username) {
+            console.log(`👤 Выбран друг: ${username}`);
+            alert(`Выбран друг: ${username}`);
+        }
+        
+        // Тестовые сценарии поиска
+        async function testSearchScenarios() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<h4>🧪 Запуск тестовых сценариев...</h4>';
+            
+            const scenarios = [
+                { query: 'иван', expected: 1, description: 'Поиск по имени "иван"' },
+                { query: 'мария', expected: 1, description: 'Поиск по имени "мария"' },
+                { query: '+79182725362', expected: 1, description: 'Поиск по полному номеру с + (символ + игнорируется)' },
+                { query: '79182725362', expected: 1, description: 'Поиск по полному номеру без +' },
+                { query: '7918', expected: 1, description: 'Поиск по части номера "7918"' },
+                { query: '7929', expected: 1, description: 'Поиск по части номера "7929"' },
+                { query: '9182725362', expected: 1, description: 'Поиск по номеру без кода страны' },
+                { query: '+7918', expected: 1, description: 'Поиск по части номера с + (символ + игнорируется)' },
+                { query: '+7929', expected: 1, description: 'Поиск по части номера с + (символ + игнорируется)' },
+                { query: 'несуществующий', expected: 0, description: 'Поиск несуществующего контакта' },
+                { query: '', expected: 3, description: 'Пустой поиск (все друзья)' }
+            ];
+            
+            let passedTests = 0;
+            let totalTests = scenarios.length;
+            
+            for (const scenario of scenarios) {
+                try {
+                    // Устанавливаем поисковый запрос
+                    const searchInput = document.getElementById('friendsSearchInput');
+                    searchInput.value = scenario.query;
+                    
+                    // Выполняем поиск
+                    await filterFriends();
+                    
+                    // Подсчитываем результаты
+                    const friendsList = document.getElementById('friendsList');
+                    const friendItems = friendsList.querySelectorAll('.friend-item');
+                    const actualResults = friendItems.length;
+                    
+                    const passed = actualResults === scenario.expected;
+                    if (passed) passedTests++;
+                    
+                    const status = passed ? '✅' : '❌';
+                    const result = `
+                        <div style="margin: 5px 0; padding: 5px; background: ${passed ? '#e8f5e8' : '#ffebee'}; border-radius: 3px;">
+                            ${status} <strong>${scenario.description}</strong><br>
+                            <small>Ожидалось: ${scenario.expected}, Получено: ${actualResults}</small>
+                        </div>
+                    `;
+                    
+                    resultsDiv.innerHTML += result;
+                    
+                } catch (error) {
+                    console.error(`❌ Ошибка в сценарии "${scenario.description}":`, error);
+                    resultsDiv.innerHTML += `
+                        <div style="margin: 5px 0; padding: 5px; background: #ffebee; border-radius: 3px;">
+                            ❌ <strong>${scenario.description}</strong><br>
+                            <small>Ошибка: ${error.message}</small>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Итоговые результаты
+            const successRate = Math.round((passedTests / totalTests) * 100);
+            resultsDiv.innerHTML += `
+                <div style="margin-top: 15px; padding: 10px; background: ${successRate === 100 ? '#e8f5e8' : '#fff3e0'}; border-radius: 5px; border-left: 4px solid ${successRate === 100 ? '#4CAF50' : '#FF9800'};">
+                    <h4>📊 Итоговые результаты</h4>
+                    <p><strong>Пройдено тестов:</strong> ${passedTests}/${totalTests} (${successRate}%)</p>
+                    <p><strong>Статус:</strong> ${successRate === 100 ? 'Все тесты пройдены!' : 'Некоторые тесты не пройдены'}</p>
+                </div>
+            `;
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Тест поиска по друзьям загружен');
+        });
+    </script>
+</body>
+</html>

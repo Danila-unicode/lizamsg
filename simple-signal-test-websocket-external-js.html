@@ -53,6 +53,12 @@
                 <!-- Таб Друзья -->
                 <div id="friendsTab" class="tab-panel friends-panel">
                     <h3>Мои друзья</h3>
+                    
+                    <!-- Поиск по друзьям -->
+                    <div class="friends-search-container">
+                        <input type="text" id="friendsSearchInput" placeholder="Поиск по имени или номеру..." class="friends-search-input" oninput="filterFriends()">
+                    </div>
+                    
                     <div id="friendsList" class="friends-list"></div>
                 </div>
                 

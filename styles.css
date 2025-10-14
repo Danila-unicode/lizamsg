@@ -1,4 +1,4 @@
-/* Версия CSS: 1.8.4 - Стилизация типа звонка в окне входящего звонка */
+/* Версия CSS: 1.8.5 - Добавлен поиск по друзьям */
 /* Стили для страниц авторизации и регистрации */
 * {
     box-sizing: border-box;
@@ -475,6 +475,34 @@ body.register-body {
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; background: #f9f9f9; }
         .user-item .username { font-weight: bold; }
         .user-item .actions { display: flex; gap: 5px; }
+        /* Поиск по друзьям */
+        .friends-search-container {
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .friends-search-input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .friends-search-input:focus {
+            border-color: #2196F3;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        .friends-search-clear {
+            display: none;
+        }
+        
+        
         .friends-list, .requests-list, .sent-requests-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0; background: #fafafa; }
         .friend-item, .request-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #eee; margin: 3px 0; border-radius: 3px; background: white; }
         .friend-item .username, .request-item .username { font-weight: bold; }

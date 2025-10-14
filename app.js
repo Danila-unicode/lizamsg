@@ -6127,3 +6127,160 @@
                 currentUser.log(`❌ Ошибка переключения камеры: ${error.message}`, 'error');
             }
         }
+
+        // ===== ПОИСК ПО ДРУЗЬЯМ =====
+        
+        // Фильтрация друзей по поисковому запросу
+        async function filterFriends() {
+            const searchInput = document.getElementById('friendsSearchInput');
+            let searchQuery = searchInput.value.toLowerCase().trim();
+            
+            // Убираем символ + из поискового запроса
+            searchQuery = searchQuery.replace(/\+/g, '');
+            
+            const friendsList = document.getElementById('friendsList');
+            
+            if (!searchQuery) {
+                // Если поиск пустой, показываем всех друзей
+                updateFriendsList();
+                return;
+            }
+            
+            currentUser.log(`🔍 Поиск по друзьям: "${searchQuery}"`, 'info');
+            
+            try {
+                // Получаем всех друзей
+                const allFriends = friendsData.friends || [];
+                const filteredFriends = [];
+                
+                for (const friend of allFriends) {
+                    let matches = false;
+                    
+                    // Поиск по номеру телефона (упрощенная логика)
+                    if (friend.username) {
+                        const phoneNumber = friend.username;
+                        
+                        // Убираем + из номера для сравнения
+                        const phoneWithoutPlus = phoneNumber.replace(/\+/g, '');
+                        
+                        // Поиск по номеру без +
+                        if (phoneWithoutPlus.includes(searchQuery)) {
+                            matches = true;
+                        }
+                        
+                        // Поиск по последним цифрам (без кода страны)
+                        if (!matches) {
+                            const lastDigits = phoneWithoutPlus.replace(/^7/, ''); // Убираем 7
+                            if (lastDigits.includes(searchQuery)) {
+                                matches = true;
+                            }
+                        }
+                    }
+                    
+                    // Поиск по имени из записной книжки
+                    if (!matches && friend.username) {
+                        try {
+                            const contactName = await getContactName(friend.username);
+                            if (contactName && contactName.toLowerCase().includes(searchQuery)) {
+                                matches = true;
+                            }
+                        } catch (error) {
+                            currentUser.log(`⚠️ Ошибка получения имени контакта для ${friend.username}: ${error.message}`, 'warn');
+                        }
+                    }
+                    
+                    if (matches) {
+                        filteredFriends.push(friend);
+                    }
+                }
+                
+                // Отображаем отфильтрованных друзей
+                displayFilteredFriends(filteredFriends, searchQuery);
+                
+            } catch (error) {
+                currentUser.log(`❌ Ошибка фильтрации друзей: ${error.message}`, 'error');
+                friendsList.innerHTML = '<p style="color: red; text-align: center;">Ошибка поиска</p>';
+            }
+        }
+        
+        // Отображение отфильтрованных друзей
+        async function displayFilteredFriends(friends, searchQuery) {
+            const friendsList = document.getElementById('friendsList');
+            
+            if (friends.length === 0) {
+                friendsList.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #666;">
+                        <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; opacity: 0.5;"></i>
+                        <p>По запросу "<strong>${searchQuery}</strong>" ничего не найдено</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Попробуйте изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Используем тот же стиль, что и обычный список друзей
+            const friendsHtml = friends.map(friend => {
+                const unreadCount = unreadMessages[friend.username] || 0;
+                const unreadIndicator = unreadCount > 0 ? `<span class="unread-indicator" style="background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 8px; font-weight: bold;">${unreadCount}</span>` : '';
+                
+                return `
+                    <div class="friend-item" data-friend="${friend.username}" onclick="openChat('${friend.username}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='white'">
+                        <div class="username" style="position: relative;">
+                            <div class="friend-avatar" style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #ddd; margin-right: 8px; vertical-align: middle; text-align: center; line-height: 20px; font-size: 12px; color: #666;" data-user-id="${friend.contact_user_id}">
+                                <i class="fas fa-user" style="font-size: 10px;"></i>
+                            </div>
+                            <span class="friend-display-name" data-phone="${friend.username}">${friend.username}</span>${unreadIndicator}
+                        </div>
+                        <div class="actions" onclick="event.stopPropagation()">
+                            <div class="call-buttons">
+                                <button onclick="callFriend('${friend.username}')" class="btn-primary btn-small" id="callBtn_${friend.username}"><i class="fas fa-video"></i> Видеозвонок</button>
+                                <button onclick="callFriendAudio('${friend.username}')" class="btn-secondary btn-small" id="audioCallBtn_${friend.username}"><i class="fas fa-microphone"></i> Аудиозвонок</button>
+                            </div>
+                            <button onclick="endCall()" class="btn-danger btn-small" id="disconnectBtn_${friend.username}" style="display: none;"><i class="fas fa-phone-slash"></i> Завершить</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            friendsList.innerHTML = friendsHtml;
+            
+            // Загружаем аватары для отфильтрованных друзей
+            loadFilteredFriendsAvatars(friends);
+        }
+        
+        // Подсветка найденного текста
+        function highlightSearchText(text, searchQuery) {
+            if (!searchQuery) return text;
+            
+            const regex = new RegExp(`(${searchQuery})`, 'gi');
+            return text.replace(regex, '<mark style="background: #ffeb3b; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+        }
+        
+        // Загрузка аватаров для отфильтрованных друзей
+        async function loadFilteredFriendsAvatars(friends) {
+            const friendAvatars = document.querySelectorAll('.friend-avatar');
+            
+            for (let avatarDiv of friendAvatars) {
+                const userId = avatarDiv.getAttribute('data-user-id');
+                if (!userId) continue;
+
+                try {
+                    // Получаем username из данных друзей
+                    const friend = friends.find(f => f.contact_user_id == userId);
+                    if (friend) {
+                        console.log(`🔄 Загружаем аватар для друга ${friend.username} (ID: ${userId})`);
+                        // Используем кэшированный аватар
+                        const avatarData = await getCachedAvatar(userId, friend.username);
+                        if (avatarData) {
+                            avatarDiv.innerHTML = `<img src="${avatarData}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                            console.log(`✅ Аватар для ${friend.username} отображен`);
+                        } else {
+                            console.log(`⚠️ Аватар для ${friend.username} не найден в кэше`);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ Ошибка загрузки аватара для ID ${userId}:`, error);
+                }
+            }
+        }
+        

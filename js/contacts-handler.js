@@ -311,8 +311,11 @@ function blobToBase64(blob) {
 // Загрузка аватара из кэша или с сервера
 async function getCachedAvatar(user_id, username) {
     try {
+        console.log(`[DEBUG] getCachedAvatar: Попытка получить аватар для ${username} (ID: ${user_id})`);
+        
         // Сначала проверяем кэш
         const cachedAvatar = await getAvatar(user_id);
+        console.log(`[DEBUG] getCachedAvatar для ${username}: cachedAvatar =`, cachedAvatar);
         
         if (cachedAvatar && !isAvatarStale(cachedAvatar.timestamp)) {
             if (cachedAvatar.avatarData) {
@@ -327,6 +330,7 @@ async function getCachedAvatar(user_id, username) {
         // Если в кэше нет или устарел - загружаем с сервера
         console.log(`🔄 Аватар для ${username} устарел или отсутствует, загружаем с сервера`);
         const avatarData = await loadAndCacheAvatar(user_id, username);
+        console.log(`[DEBUG] getCachedAvatar для ${username}: avatarData после загрузки =`, avatarData);
         return avatarData ? avatarData.avatarData : null;
         
     } catch (error) {
