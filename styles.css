@@ -1,4 +1,4 @@
-/* Версия CSS: 1.8.0 - Добавлена система кэширования аватаров */
+/* Версия CSS: 1.8.4 - Стилизация типа звонка в окне входящего звонка */
 /* Стили для страниц авторизации и регистрации */
 * {
     box-sizing: border-box;
@@ -1785,8 +1785,24 @@ input[autocomplete="new-password"]:-webkit-autofill {
 .call-status {
     color: #666;
     font-size: 16px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Тип звонка */
+.call-type {
+    color: #2196F3;
+    font-size: 14px;
+    font-weight: 600;
     margin-bottom: 30px;
     text-align: center;
+    padding: 8px 16px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Контейнер аватара */

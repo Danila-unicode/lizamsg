@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест отображения типа звонка</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .call-status {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .call-type {
+            color: #2196F3;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 10px 0 30px;
+            text-align: center;
+            padding: 8px 16px;
+            background: rgba(33, 150, 243, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .test-call-window {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            background: #f9f9f9;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест отображения типа звонка</h1>
+    
+    <div class="test-section">
+        <h2>📊 Статус системы</h2>
+        <div id="systemStatus">Проверяем...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📞 Тест типов звонков</h2>
+        <button onclick="testVideoCall()">Тест видеозвонка</button>
+        <button onclick="testAudioCall()">Тест аудиозвонка</button>
+        <div id="callTest"></div>
+        
+        <!-- Имитация окна входящего звонка -->
+        <div class="test-call-window">
+            <h3>Окно входящего звонка:</h3>
+            <div class="call-status">Входящий вызов...</div>
+            <div class="call-type" id="testCallTypeText">Тип звонка</div>
+            <div id="testCallerName" style="font-weight: bold;">Имя звонящего</div>
+        </div>
+    </div>
+
+    <!-- Подключаем необходимые скрипты -->
+    <script src="js/contacts-handler.js"></script>
+    <script>
+        // Проверяем статус системы
+        async function checkSystemStatus() {
+            const statusDiv = document.getElementById('systemStatus');
+            try {
+                // Проверяем IndexedDB
+                await initContactsDB();
+                statusDiv.innerHTML = '<div class="status success">✅ IndexedDB инициализирована</div>';
+                statusDiv.innerHTML += '<div class="status success">✅ Система готова к тестированию</div>';
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Ошибка инициализации: ' + error.message + '</div>';
+            }
+        }
+        
+        // Тест видеозвонка
+        function testVideoCall() {
+            const testDiv = document.getElementById('callTest');
+            testDiv.innerHTML = '<div class="status info">🔄 Тестируем видеозвонок...</div>';
+            
+            // Обновляем элементы
+            const callTypeText = document.getElementById('testCallTypeText');
+            const callerName = document.getElementById('testCallerName');
+            
+            if (callTypeText) {
+                callTypeText.textContent = 'Видеозвонок';
+                callerName.textContent = 'Тестовый пользователь';
+                testDiv.innerHTML += '<div class="status success">✅ Видеозвонок отображен</div>';
+            }
+        }
+        
+        // Тест аудиозвонка
+        function testAudioCall() {
+            const testDiv = document.getElementById('callTest');
+            testDiv.innerHTML = '<div class="status info">🔄 Тестируем аудиозвонок...</div>';
+            
+            // Обновляем элементы
+            const callTypeText = document.getElementById('testCallTypeText');
+            const callerName = document.getElementById('testCallerName');
+            
+            if (callTypeText) {
+                callTypeText.textContent = 'Аудиозвонок';
+                callerName.textContent = 'Тестовый пользователь';
+                testDiv.innerHTML += '<div class="status success">✅ Аудиозвонок отображен</div>';
+            }
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSystemStatus();
+        });
+    </script>
+</body>
+</html>

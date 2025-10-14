@@ -460,6 +460,10 @@
                 
             currentUser.log(`🏓 Получен ping от ${signal.from}`, 'info');
             
+            // Определяем тип звонка
+            const callType = signal.data.callType || 'video';
+            const isAudioCall = callType === 'audio';
+            
             // Показываем окно входящего звонка
             incomingCall.isActive = true;
             incomingCall.caller = signal.from;
@@ -467,17 +471,13 @@
             incomingCall.iceCandidates = [];
             
             // Обновляем имя звонящего в модальном окне
-            await updateIncomingCallerName(signal.from);
+            await updateIncomingCallerName(signal.from, callType);
             document.getElementById('incomingCallModal').style.display = 'flex';
             
             // Воспроизводим звук входящего звонка
             playIncomingCallSound();
             
             currentUser.log(`📞 Входящий звонок от ${signal.from}`, 'info');
-            
-            // Определяем тип звонка
-            const callType = signal.data.callType || 'video';
-            const isAudioCall = callType === 'audio';
             
             // Сохраняем тип звонка для использования при принятии
             incomingCall.callType = callType;
@@ -718,6 +718,9 @@
             currentUser.callType = callType; // Устанавливаем тип звонка
             updateUI();
             
+            // Сохраняем caller перед скрытием модального окна
+            const callerUsername = incomingCall.caller;
+            
             // Скрываем окно входящего звонка
             hideIncomingCallModal();
             
@@ -725,12 +728,13 @@
             console.log('✅ [ACCEPT] incomingCall.callType:', incomingCall.callType);
             console.log('✅ [ACCEPT] Определенный тип звонка:', callType);
             console.log('✅ [ACCEPT] Это аудиозвонок:', callType === 'audio');
+            console.log('✅ [ACCEPT] Сохраненный callerUsername:', callerUsername);
             
             if (callType === 'audio') {
                 console.log('🎵 [ACCEPT] Показываем аудио контейнер');
                 document.getElementById('audioCallContainer').style.display = 'block';
                 // Обновляем имя звонящего для аудиозвонка
-                await updateAudioCallerName(incomingCall.caller || 'user1');
+                await updateAudioCallerName(callerUsername);
             } else {
                 console.log('🎬 [ACCEPT] Показываем видео контейнер');
                 document.getElementById('videoCallContainer').style.display = 'block';
@@ -1020,11 +1024,13 @@
         async function updateAudioCallerName(callerUsername) {
             console.log('🚀 [AUDIO-CALL] ФУНКЦИЯ ВЫЗВАНА! callerUsername:', callerUsername);
             const audioCallerName = document.getElementById('audioCallerName');
+            const audioCallerAvatar = document.getElementById('audioCallerAvatar');
             const chatFriendName = document.getElementById('chatFriendName');
             
             console.log('👤 [AUDIO-CALL] ===== ОТЛАДКА ИМЕНИ =====');
             console.log('👤 [AUDIO-CALL] callerUsername:', callerUsername);
             console.log('👤 [AUDIO-CALL] audioCallerName элемент:', !!audioCallerName);
+            console.log('👤 [AUDIO-CALL] audioCallerAvatar элемент:', !!audioCallerAvatar);
             console.log('👤 [AUDIO-CALL] chatFriendName элемент:', !!chatFriendName);
             console.log('👤 [AUDIO-CALL] chatFriendName содержимое:', chatFriendName?.textContent);
             console.log('👤 [AUDIO-CALL] chatFriendName длина:', chatFriendName?.textContent?.length);
@@ -1060,19 +1066,58 @@
             } else {
                 console.log('❌ [AUDIO-CALL] audioCallerName элемент не найден!');
             }
+            
+            // Загружаем аватар абонента из кэша
+            try {
+                console.log('🖼️ [AUDIO-CALL] Загружаем аватар для абонента:', callerUsername);
+                
+                // Находим ID абонента в списке друзей
+                const callerFriend = friendsData.friends.find(f => f.username === callerUsername);
+                if (callerFriend && audioCallerAvatar) {
+                    console.log('🖼️ [AUDIO-CALL] Найден друг в списке, ID:', callerFriend.contact_user_id);
+                    
+                    // Получаем кэшированный аватар
+                    const avatarData = await getCachedAvatar(callerFriend.contact_user_id, callerUsername);
+                    if (avatarData) {
+                        // Заменяем placeholder на аватар
+                        audioCallerAvatar.innerHTML = `<img src="${avatarData}" alt="Аватар абонента" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                        console.log('✅ [AUDIO-CALL] Аватар абонента загружен из кэша');
+                    } else {
+                        console.log('⚠️ [AUDIO-CALL] Аватар абонента не найден в кэше, оставляем placeholder');
+                    }
+                } else {
+                    console.log('⚠️ [AUDIO-CALL] Абонент не найден в списке друзей или элемент аватара не найден');
+                }
+            } catch (error) {
+                console.error('❌ [AUDIO-CALL] Ошибка загрузки аватара абонента:', error);
+            }
         }
         
         // Обновление имени звонящего в модальном окне входящего звонка
-        async function updateIncomingCallerName(callerUsername) {
+        async function updateIncomingCallerName(callerUsername, callType = 'video') {
             const callerName = document.getElementById('callerName');
             const chatFriendName = document.getElementById('chatFriendName');
+            const callerAvatarPlaceholder = document.getElementById('callerAvatarPlaceholder');
+            const callTypeText = document.getElementById('callTypeText');
             
             console.log('👤 [INCOMING-CALL] ===== ОТЛАДКА ИМЕНИ =====');
             console.log('👤 [INCOMING-CALL] callerUsername:', callerUsername);
+            console.log('👤 [INCOMING-CALL] callType:', callType);
             console.log('👤 [INCOMING-CALL] callerName элемент:', !!callerName);
             console.log('👤 [INCOMING-CALL] chatFriendName элемент:', !!chatFriendName);
             console.log('👤 [INCOMING-CALL] chatFriendName содержимое:', chatFriendName?.textContent);
             console.log('👤 [INCOMING-CALL] chatFriendName длина:', chatFriendName?.textContent?.length);
+            
+            // Обновляем тип звонка
+            if (callTypeText) {
+                if (callType === 'audio') {
+                    callTypeText.textContent = 'Аудиозвонок';
+                    console.log('📞 [INCOMING-CALL] Установлен тип: Аудиозвонок');
+                } else {
+                    callTypeText.textContent = 'Видеозвонок';
+                    console.log('📞 [INCOMING-CALL] Установлен тип: Видеозвонок');
+                }
+            }
             
             if (callerName && chatFriendName && chatFriendName.textContent && chatFriendName.textContent !== 'Другом') {
                 // Берем имя собеседника из chatFriendName
@@ -1096,6 +1141,31 @@
                     callerName.textContent = callerUsername;
                     console.log('👤 [INCOMING-CALL] Fallback на username:', callerUsername);
                 }
+            }
+            
+            // Загружаем аватар звонящего из кэша
+            try {
+                console.log('🖼️ [INCOMING-CALL] Загружаем аватар для звонящего:', callerUsername);
+                
+                // Находим ID звонящего в списке друзей
+                const callerFriend = friendsData.friends.find(f => f.username === callerUsername);
+                if (callerFriend && callerAvatarPlaceholder) {
+                    console.log('🖼️ [INCOMING-CALL] Найден друг в списке, ID:', callerFriend.contact_user_id);
+                    
+                    // Получаем кэшированный аватар
+                    const avatarData = await getCachedAvatar(callerFriend.contact_user_id, callerUsername);
+                    if (avatarData) {
+                        // Заменяем placeholder на аватар
+                        callerAvatarPlaceholder.innerHTML = `<img src="${avatarData}" alt="Аватар звонящего" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                        console.log('✅ [INCOMING-CALL] Аватар звонящего загружен из кэша');
+                    } else {
+                        console.log('⚠️ [INCOMING-CALL] Аватар звонящего не найден в кэше, оставляем placeholder');
+                    }
+                } else {
+                    console.log('⚠️ [INCOMING-CALL] Звонящий не найден в списке друзей или элемент placeholder не найден');
+                }
+            } catch (error) {
+                console.error('❌ [INCOMING-CALL] Ошибка загрузки аватара звонящего:', error);
             }
         }
         
