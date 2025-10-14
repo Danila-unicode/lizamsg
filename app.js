@@ -96,6 +96,9 @@
                     
                     currentUser.callsWs.onerror = (error) => {
                         currentUser.log(`❌ Ошибка WebSocket звонков: ${error.message}`, 'error');
+                        // Останавливаем все звуки при ошибке WebSocket
+                        stopIncomingCallSound();
+                        stopOutgoingCallSound();
                         reject(error);
                     };
                 
@@ -389,8 +392,14 @@
             currentUser.webrtcInitiated = false;
             updateUI();
             
+            // Запускаем звук гудков для звонящего
+            playOutgoingCallSound();
+            
+            // Запускаем таймаут звонка
+            startCallTimeout();
+            
             // Обновляем имя звонящего для аудиозвонка
-            updateAudioCallerName(targetId);
+            await updateAudioCallerName(targetId);
             
             // Отправляем ping через WebSocket с типом аудио
             currentUser.log(`📤 Отправляем ping к ${targetId}`, 'info');
@@ -417,6 +426,12 @@
             currentUser.webrtcInitiated = false;
             updateUI();
             
+            // Запускаем звук гудков для звонящего
+            playOutgoingCallSound();
+            
+            // Запускаем таймаут звонка
+            startCallTimeout();
+            
             // Отправляем ping через WebSocket
             currentUser.log(`📤 Отправляем ping к ${targetId}`, 'info');
             sendCallsWebSocketMessage('ping', { timestamp: Date.now(), callType: 'video' }, targetId);
@@ -439,8 +454,11 @@
             incomingCall.iceCandidates = [];
             
             // Обновляем имя звонящего в модальном окне
-            updateIncomingCallerName(signal.from);
+            await updateIncomingCallerName(signal.from);
             document.getElementById('incomingCallModal').style.display = 'flex';
+            
+            // Воспроизводим звук входящего звонка
+            playIncomingCallSound();
             
             currentUser.log(`📞 Входящий звонок от ${signal.from}`, 'info');
             
@@ -504,6 +522,12 @@
                 currentUser.log(`🏓 Получен pong от ${signal.from} - связь установлена!`, 'success');
                 currentUser.state = 'connected';
                 updateUI();
+                
+                // Останавливаем звук гудков для звонящего
+                stopOutgoingCallSound();
+                
+                // Останавливаем таймаут звонка
+                stopCallTimeout();
                 
                 // Запускаем таймер звонка для звонящего
                 startCallTimer();
@@ -655,6 +679,15 @@
         async function acceptIncomingCall() {
             if (!incomingCall.isActive) return;
             
+            // Останавливаем звук входящего звонка
+            stopIncomingCallSound();
+            
+            // Останавливаем звук гудков для звонящего (если он был инициатором)
+            stopOutgoingCallSound();
+            
+            // Останавливаем таймаут звонка
+            stopCallTimeout();
+            
             currentUser.log(`✅ Принимаем звонок от ${incomingCall.caller}`, 'success');
             
             // Отправляем pong для подтверждения принятия звонка
@@ -684,7 +717,7 @@
                 console.log('🎵 [ACCEPT] Показываем аудио контейнер');
                 document.getElementById('audioCallContainer').style.display = 'block';
                 // Обновляем имя звонящего для аудиозвонка
-                updateAudioCallerName(incomingCall.caller || 'user1');
+                await updateAudioCallerName(incomingCall.caller || 'user1');
             } else {
                 console.log('🎬 [ACCEPT] Показываем видео контейнер');
                 document.getElementById('videoCallContainer').style.display = 'block';
@@ -753,6 +786,13 @@
             }
             callStartTime = null;
             console.log('⏰ [TIMER] Остановка таймера звонка');
+            
+            // Останавливаем все звуки при остановке таймера
+            stopIncomingCallSound();
+            stopOutgoingCallSound();
+            
+            // Останавливаем таймаут звонка
+            stopCallTimeout();
             
             // Сбрасываем таймеры
             const audioTimer = document.getElementById('audioCallTimer');
@@ -964,7 +1004,7 @@
         }
         
         // Обновление имени звонящего для аудиозвонка
-        function updateAudioCallerName(callerUsername) {
+        async function updateAudioCallerName(callerUsername) {
             console.log('🚀 [AUDIO-CALL] ФУНКЦИЯ ВЫЗВАНА! callerUsername:', callerUsername);
             const audioCallerName = document.getElementById('audioCallerName');
             const chatFriendName = document.getElementById('chatFriendName');
@@ -983,10 +1023,25 @@
                     audioCallerName.textContent = chatFriendName.textContent;
                     console.log('👤 [AUDIO-CALL] ✅ Используем имя собеседника из chatFriendName:', chatFriendName.textContent);
                 } else {
-                    // Если chatFriendName недоступен или содержит "Другом", используем username или fallback
-                    const displayName = callerUsername || 'Неизвестный пользователь';
-                    audioCallerName.textContent = displayName;
-                    console.log('👤 [AUDIO-CALL] ⚠️ Используем username или fallback:', displayName);
+                    // Пытаемся загрузить имя из IndexedDB
+                    try {
+                        const contactName = await getContactName(callerUsername);
+                        if (contactName) {
+                            audioCallerName.textContent = contactName;
+                            console.log('👤 [AUDIO-CALL] ✅ Используем имя из IndexedDB:', contactName);
+                        } else {
+                            // Если имени нет в IndexedDB, используем username
+                            const displayName = callerUsername || 'Неизвестный пользователь';
+                            audioCallerName.textContent = displayName;
+                            console.log('👤 [AUDIO-CALL] ⚠️ Используем username или fallback:', displayName);
+                        }
+                    } catch (error) {
+                        console.error('👤 [AUDIO-CALL] Ошибка загрузки имени из IndexedDB:', error);
+                        // Fallback на username при ошибке
+                        const displayName = callerUsername || 'Неизвестный пользователь';
+                        audioCallerName.textContent = displayName;
+                        console.log('👤 [AUDIO-CALL] Fallback на username:', displayName);
+                    }
                 }
                 console.log('👤 [AUDIO-CALL] Итоговое содержимое audioCallerName:', audioCallerName.textContent);
             } else {
@@ -995,7 +1050,7 @@
         }
         
         // Обновление имени звонящего в модальном окне входящего звонка
-        function updateIncomingCallerName(callerUsername) {
+        async function updateIncomingCallerName(callerUsername) {
             const callerName = document.getElementById('callerName');
             const chatFriendName = document.getElementById('chatFriendName');
             
@@ -1011,17 +1066,193 @@
                 callerName.textContent = chatFriendName.textContent;
                 console.log('👤 [INCOMING-CALL] Используем имя собеседника из chatFriendName:', chatFriendName.textContent);
             } else {
-                // Если chatFriendName недоступен или содержит "Другом", используем username
-                if (callerName && callerUsername) {
+                // Пытаемся загрузить имя из IndexedDB
+                try {
+                    const contactName = await getContactName(callerUsername);
+                    if (contactName) {
+                        callerName.textContent = contactName;
+                        console.log('👤 [INCOMING-CALL] Используем имя из IndexedDB:', contactName);
+                    } else {
+                        // Если имени нет в IndexedDB, используем username
+                        callerName.textContent = callerUsername;
+                        console.log('👤 [INCOMING-CALL] Используем username:', callerUsername);
+                    }
+                } catch (error) {
+                    console.error('👤 [INCOMING-CALL] Ошибка загрузки имени из IndexedDB:', error);
+                    // Fallback на username при ошибке
                     callerName.textContent = callerUsername;
-                    console.log('👤 [INCOMING-CALL] Используем username:', callerUsername);
+                    console.log('👤 [INCOMING-CALL] Fallback на username:', callerUsername);
                 }
+            }
+        }
+        
+        // Воспроизведение звука входящего звонка
+        let incomingCallSound = null;
+        let incomingCallSoundInterval = null;
+        
+        function playIncomingCallSound() {
+            // Создаем звук входящего звонка программно
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Функция для создания одного гудка
+            function createBeep(frequency, duration) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            }
+            
+            // Воспроизводим гудки каждые 2 секунды
+            function playBeepSequence() {
+                // Первый гудок (высокий тон)
+                createBeep(800, 0.5);
+                setTimeout(() => {
+                    // Второй гудок (низкий тон)
+                    createBeep(600, 0.5);
+                }, 600);
+            }
+            
+            // Запускаем первый гудок сразу
+            playBeepSequence();
+            
+            // Повторяем гудки каждые 2 секунды
+            incomingCallSoundInterval = setInterval(playBeepSequence, 2000);
+            
+            console.log('🔊 Воспроизведение звука входящего звонка');
+        }
+        
+        function stopIncomingCallSound() {
+            if (incomingCallSoundInterval) {
+                clearInterval(incomingCallSoundInterval);
+                incomingCallSoundInterval = null;
+                console.log('🔇 Остановка звука входящего звонка');
+            }
+        }
+        
+        // Воспроизведение звука гудков для звонящего
+        let outgoingCallSound = null;
+        let outgoingCallSoundInterval = null;
+        
+        // Таймаут звонка
+        let callTimeoutInterval = null;
+        const CALL_TIMEOUT_DURATION = 30000; // 30 секунд (как в WhatsApp/Telegram)
+        
+        function playOutgoingCallSound() {
+            // Создаем звук гудков программно
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Функция для создания одного гудка
+            function createRingingBeep(frequency, duration) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            }
+            
+            // Воспроизводим гудки каждые 2.5 секунды (как в WhatsApp/Telegram)
+            function playRingingSequence() {
+                // Длинный гудок (1 секунда)
+                createRingingBeep(440, 1.0);
+                setTimeout(() => {
+                    // Пауза 0.5 секунды
+                }, 1000);
+                setTimeout(() => {
+                    // Короткий гудок (0.5 секунды)
+                    createRingingBeep(440, 0.5);
+                }, 1500);
+            }
+            
+            // Запускаем первый гудок сразу
+            playRingingSequence();
+            
+            // Повторяем гудки каждые 2.5 секунды (как в WhatsApp)
+            outgoingCallSoundInterval = setInterval(playRingingSequence, 2500);
+            
+            console.log('📞 Воспроизведение звука гудков для звонящего');
+        }
+        
+        function stopOutgoingCallSound() {
+            if (outgoingCallSoundInterval) {
+                clearInterval(outgoingCallSoundInterval);
+                outgoingCallSoundInterval = null;
+                console.log('🔇 Остановка звука гудков для звонящего');
+            }
+        }
+        
+        // Запуск таймаута звонка
+        function startCallTimeout() {
+            // Очищаем предыдущий таймаут если есть
+            if (callTimeoutInterval) {
+                clearTimeout(callTimeoutInterval);
+            }
+            
+            callTimeoutInterval = setTimeout(() => {
+                currentUser.log('⏰ Таймаут звонка - абонент не отвечает', 'warning');
+                
+                // Останавливаем все звуки
+                stopIncomingCallSound();
+                stopOutgoingCallSound();
+                
+                // Завершаем звонок
+                if (currentUser.state === 'connecting') {
+                    endCall();
+                }
+                
+                // Скрываем модальное окно входящего звонка если оно открыто
+                if (incomingCall.isActive) {
+                    hideIncomingCallModal();
+                    incomingCall.isActive = false;
+                }
+                
+                console.log('⏰ Звонок автоматически завершен по таймауту');
+            }, CALL_TIMEOUT_DURATION);
+            
+            console.log(`⏰ Запущен таймаут звонка на ${CALL_TIMEOUT_DURATION/1000} секунд`);
+        }
+        
+        // Остановка таймаута звонка
+        function stopCallTimeout() {
+            if (callTimeoutInterval) {
+                clearTimeout(callTimeoutInterval);
+                callTimeoutInterval = null;
+                console.log('⏰ Таймаут звонка отменен');
             }
         }
         
         // Отклонение входящего звонка
         async function rejectIncomingCall() {
             if (!incomingCall.isActive) return;
+            
+            // Останавливаем звук входящего звонка
+            stopIncomingCallSound();
+            
+            // Останавливаем звук гудков для звонящего (если он был инициатором)
+            stopOutgoingCallSound();
+            
+            // Останавливаем таймаут звонка
+            stopCallTimeout();
             
             currentUser.log(`❌ Отклоняем звонок от ${incomingCall.caller}`, 'warning');
             
@@ -1110,6 +1341,10 @@
             
             // Проверяем, что это от целевого пользователя или от того, кто звонил
             if (currentUser.targetUser === signal.from || (incomingCall.isActive && incomingCall.caller === signal.from)) {
+                
+                // Останавливаем все звуки при любом разрыве соединения
+                stopIncomingCallSound();
+                stopOutgoingCallSound();
                 
                 // Если это отклонение звонка на ранней стадии
                 if (signal.data && signal.data.reason === 'call_rejected') {
@@ -1829,6 +2064,9 @@
                 chatWs.onerror = (error) => {
                     console.error('❌ Ошибка Chat WebSocket:', error);
                     updateChatStatus('Ошибка подключения к чат-серверу', 'error');
+                    // Останавливаем все звуки при ошибке чат WebSocket
+                    stopIncomingCallSound();
+                    stopOutgoingCallSound();
                 };
                 
                 chatWs.onclose = (event) => {
@@ -4624,6 +4862,13 @@
         async function disconnectCall() {
             currentUser.log('🔌 Разрываем соединение', 'warning');
             
+            // Останавливаем все звуки при разрыве соединения
+            stopIncomingCallSound();
+            stopOutgoingCallSound();
+            
+            // Останавливаем таймаут звонка
+            stopCallTimeout();
+            
             // Останавливаем таймер звонка
             stopCallTimer();
             
@@ -4665,6 +4910,15 @@
         // Завершение звонка (только P2P соединение)
         async function endCall() {
             currentUser.log('🔌 Завершаем звонок', 'warning');
+            
+            // Останавливаем звук входящего звонка
+            stopIncomingCallSound();
+            
+            // Останавливаем звук гудков для звонящего
+            stopOutgoingCallSound();
+            
+            // Останавливаем таймаут звонка
+            stopCallTimeout();
             
             // Останавливаем таймер звонка
             stopCallTimer();
@@ -4716,6 +4970,13 @@
         
         // Сброс пользователя
         async function resetUser() {
+            // Останавливаем все звуки при сбросе пользователя
+            stopIncomingCallSound();
+            stopOutgoingCallSound();
+            
+            // Останавливаем таймаут звонка
+            stopCallTimeout();
+            
             if (currentUser.peerConnection) {
                 currentUser.peerConnection.close();
                 currentUser.peerConnection = null;
