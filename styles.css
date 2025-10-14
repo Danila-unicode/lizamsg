@@ -1669,5 +1669,65 @@ input[autocomplete="new-password"]:-webkit-autofill {
     -webkit-text-fill-color: #000 !important;
 }
 
+/* Стили для кнопок поиска */
+.search-input-container button {
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
 
+.search-input-container button:hover {
+    transform: scale(1.05);
+}
 
+.search-input-container button:active {
+    transform: scale(0.95);
+}
+
+.contacts-btn:hover {
+    background: #0056b3 !important;
+}
+
+.search-btn:hover {
+    background: #218838 !important;
+}
+
+/* Кнопка контактов скрыта на десктопе */
+.contacts-btn {
+    display: none;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .contacts-btn {
+        display: flex !important;
+    }
+    
+    .search-input-container {
+        flex-direction: row;
+        gap: 6px;
+        align-items: center;
+    }
+    
+    .search-input-container input {
+        flex: 1;
+        min-width: 0;
+        font-size: 16px;
+        padding: 10px 12px;
+    }
+    
+    .search-input-container button {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        font-size: 12px;
+    }
+}

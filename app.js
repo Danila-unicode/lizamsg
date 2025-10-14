@@ -5007,7 +5007,7 @@
                             <div class="friend-avatar" style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #ddd; margin-right: 8px; vertical-align: middle; text-align: center; line-height: 20px; font-size: 12px; color: #666;" data-user-id="${friend.contact_user_id}">
                                 <i class="fas fa-user" style="font-size: 10px;"></i>
                             </div>
-                            ${friend.username}${unreadIndicator}
+                            <span class="friend-display-name" data-phone="${friend.username}">${friend.username}</span>${unreadIndicator}
                         </div>
                         <div class="actions" onclick="event.stopPropagation()">
                             <div class="call-buttons">
@@ -5024,6 +5024,9 @@
             
             // Загружаем аватары для всех друзей
             loadFriendsAvatars();
+            
+            // Загружаем имена контактов из IndexedDB
+            loadContactNames();
         }
         
         // Функция для загрузки аватаров друзей
@@ -5095,6 +5098,25 @@
             `).join('');
             
             sentRequestsList.innerHTML = sentRequestsHtml;
+        }
+        
+        // Функция для загрузки имен контактов из IndexedDB
+        async function loadContactNames() {
+            const friendNames = document.querySelectorAll('.friend-display-name');
+            
+            for (const nameElement of friendNames) {
+                const phone = nameElement.getAttribute('data-phone');
+                if (phone) {
+                    try {
+                        const contactName = await getContactName(phone);
+                        if (contactName) {
+                            nameElement.textContent = contactName;
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки имени контакта для', phone, error);
+                    }
+                }
+            }
         }
         
         // Функция для загрузки аватара пользователя
