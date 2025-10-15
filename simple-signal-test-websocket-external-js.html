@@ -30,10 +30,10 @@
         <!-- Левая панель -->
         <div class="sidebar left-sidebar">
             <div class="tabs navigation-tabs">
-                <div class="tab active" onclick="switchTab('friends')"><i class="fas fa-users"></i> Друзья</div>
-                <div class="tab" onclick="switchTab('search')"><i class="fas fa-search"></i> Поиск</div>
-                <div class="tab" onclick="switchTab('requests')"><i class="fas fa-inbox"></i> Запросы</div>
-                <div class="tab" onclick="switchTab('invitations')"><i class="fas fa-paper-plane"></i> Приглашения</div>
+                <div class="tab active" onclick="switchTab('friends')"><i class="fas fa-users"></i> <span>Друзья</span></div>
+                <div class="tab" onclick="switchTab('search')"><i class="fas fa-search"></i> <span>Поиск</span></div>
+                <div class="tab" onclick="switchTab('requests')"><i class="fas fa-inbox"></i> <span>Заявки</span></div>
+                <div class="tab" onclick="switchTab('invitations')"><i class="fas fa-paper-plane"></i> <span>Исходящие</span></div>
             </div>
             <div class="tab-content sidebar-content">
                 <!-- Таб Поиск -->
@@ -44,7 +44,7 @@
                         <button onclick="selectFromContacts()" class="btn-secondary contacts-btn" style="border: 1px solid #007bff; background: #007bff; color: white; border-radius: 5px; cursor: pointer;" title="Выбрать из контактов">
                             <i class="fas fa-address-book"></i>
                         </button>
-                        <button onclick="searchUser()" class="btn-primary search-btn" style="border: 1px solid #28a745; background: #28a745; color: white; border-radius: 5px; cursor: pointer;" title="Найти пользователя">
+                        <button onclick="searchUser()" class="btn-primary search-btn" style="border: 1px solid var(--accent); background: var(--accent); color: white; border-radius: 5px; cursor: pointer;" title="Найти пользователя">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
@@ -169,7 +169,7 @@
             <!-- Окно чата в правой части -->
             <div id="chatContainer" class="chat-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000;">
                 <!-- Заголовок чата -->
-                    <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="chat-header">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <div id="chatFriendAvatar" style="width: 50px; height: 50px; border-radius: 50%; background: #34495e; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">
                                 <i class="fas fa-user"></i>
@@ -187,14 +187,14 @@
                 </div>
                 
                 <!-- Область сообщений -->
-            <div style="flex: 1; padding: 5px; display: flex; flex-direction: column; background: #f8f9fa; height: calc(100% - 140px);">
+            <div class="chat-messages" style="flex: 1; padding: 5px; display: flex; flex-direction: column; height: calc(100% - 140px);">
                     <!-- Статус подключения -->
                     <!-- <div id="chatStatus" style="padding: 10px 20px; background: #fff3cd; color: #856404; border-bottom: 1px solid #ffeaa7; font-size: 14px;">
                         Подключение к чат-серверу...
                     </div> -->
                     
                     <!-- Сообщения чата -->
-                    <div id="chatMessages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; margin: 10px 0;">
+                    <div id="chatMessages" class="chat-messages-content" style="flex: 1; padding: 15px; overflow-y: auto; border-radius: 8px; margin: 10px 0;">
                         <!-- Сообщения будут добавляться здесь -->
                     </div>
                     
@@ -233,33 +233,22 @@
                     </div>
                     
                     <!-- Панель ввода сообщения (обычная) -->
-                    <div id="chatInputPanel" style="display: flex; padding: 5px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
-                        <input type="text" id="chatMessageInput" placeholder="Введите сообщение... (эмодзи вставляются в текст)" style="flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px;" onkeypress="handleChatKeyPress(event)" autocomplete="off">
-                        <button onclick="sendChatMessage()" style="background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="fas fa-paper-plane"></i></button>
-                        <button onclick="toggleChatEmojiPanel()" style="background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 20px; margin-left: 10px; cursor: pointer; font-size: 14px;"><i class="far fa-smile"></i></button>
+                    <div id="chatInputPanel" class="chat-input-panel" style="display: flex;">
+                        <input type="text" id="chatMessageInput" class="chat-message-input" placeholder="Введите сообщение..." onkeypress="handleChatKeyPress(event)" autocomplete="off">
+                        <button onclick="sendChatMessage()" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
+                        <button onclick="toggleChatEmojiPanel()" class="chat-emoji-btn"><i class="far fa-smile"></i></button>
                     </div>
                     
                     <!-- Меню для выделенных сообщений -->
-                    <div id="selectedMessagesMenu" class="selected-messages-menu" style="display: none; padding: 5px; background: white; border-top: 1px solid #ddd; border-radius: 0 0 8px 8px;">
+                    <div id="selectedMessagesMenu" class="selected-messages-menu" style="display: none;">
                         <div class="selected-count">
-                            <span id="selectedCount">0</span> сообщений
+                            <span id="selectedCount">0</span> сообщений выбрано
                         </div>
-                        <button class="menu-trigger" onclick="toggleSelectionMenu()">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <div class="selection-menu" id="selectionMenu">
-                            <div class="menu-item" onclick="copySelectedMessages()">
-                                <i class="fas fa-copy"></i>
-                                Копировать
-                            </div>
-                            <div class="menu-item resend" onclick="resendSelectedMessages()">
-                                <i class="fas fa-redo"></i>
-                                Отправить повторно
-                            </div>
-                            <div class="menu-item delete" onclick="deleteSelectedMessages()">
-                                <i class="fas fa-trash"></i>
-                                Удалить
-                            </div>
+                        <div class="selected-messages-actions">
+                            <button onclick="deleteSelectedMessages()" class="selected-message-btn danger"><i class="fas fa-trash"></i> Удалить</button>
+                            <button onclick="copySelectedMessages()" class="selected-message-btn"><i class="fas fa-copy"></i> Копировать</button>
+                            <button onclick="resendSelectedMessages()" class="selected-message-btn primary"><i class="fas fa-redo"></i> Повторить</button>
+                            <button onclick="clearSelection()" class="selected-message-btn"><i class="fas fa-times"></i> Отменить</button>
                         </div>
                     </div>
             </div>

@@ -2272,8 +2272,8 @@
                 border-radius: 15px;
                 max-width: 70%;
                 word-wrap: break-word;
-                background: ${isOwn ? '#4CAF50' : '#e0e0e0'};
-                color: ${isOwn ? 'white' : '#333'};
+                background: ${isOwn ? 'rgb(255, 169, 90)' : '#F6F6F6'};
+                color: ${isOwn ? '#101010' : '#1A1A1A'};
                 margin-left: ${isOwn ? 'auto' : '0'};
                 text-align: ${isOwn ? 'right' : 'left'};
             `;
@@ -2334,13 +2334,11 @@
             
             switch (status) {
                 case 'not_sent':
-                    return `<div class="message-status" style="font-size: 10px; opacity: 0.8; margin-top: 3px; color: #ff9800;">⏳ Отправляется</div>`;
+                    return `<div class="message-status" style="font-size: 12px; opacity: 0.8; margin-top: 3px; color: white;"><i class="fas fa-clock"></i> Отправляется</div>`;
                 case 'sent':
-                    return `<div class="message-status" style="font-size: 10px; opacity: 0.8; margin-top: 3px; color: #4caf50;">✅ Отправлено</div>`;
+                    return `<div class="message-status" style="font-size: 12px; opacity: 0.8; margin-top: 3px; color: #4caf50;"><i class="fas fa-check-circle"></i> Отправлено</div>`;
                 case 'cancelled':
-                    return `<div class="message-status" style="font-size: 10px; opacity: 0.8; margin-top: 3px; color: #f44336;">
-                        <span style="color: #f44336;">❌ Отменено</span>
-                    </div>`;
+                    return `<div class="message-status" style="font-size: 12px; opacity: 0.8; margin-top: 3px; color: #f44336;"><i class="fas fa-times"></i> Отменено</div>`;
                 default:
                     return '';
             }
@@ -2397,18 +2395,6 @@
         function initDeleteSystem() {
             // Инициализация меню выделенных сообщений
             updateSelectionMenu();
-            
-            // Обработчик клика вне меню для его закрытия
-            document.addEventListener('click', function(event) {
-                const menu = document.getElementById('selectionMenu');
-                const trigger = document.querySelector('.menu-trigger');
-                
-                if (menu && menu.classList.contains('show') && 
-                    !menu.contains(event.target) && 
-                    !trigger.contains(event.target)) {
-                    menu.classList.remove('show');
-                }
-            });
         }
         
         // Выделение/снятие выделения сообщения
@@ -2439,14 +2425,28 @@
             
             if (selectedMessages.size > 0) {
                 // Показываем меню, скрываем панель ввода
-                inputPanel.style.display = 'none';
+                inputPanel.classList.add('hidden');
                 menu.style.display = 'flex';
                 count.textContent = selectedMessages.size;
             } else {
                 // Показываем панель ввода, скрываем меню
-                inputPanel.style.display = 'flex';
+                inputPanel.classList.remove('hidden');
                 menu.style.display = 'none';
             }
+        }
+        
+        // Очистка выделения
+        function clearSelection() {
+            // Убираем визуальное выделение со всех сообщений
+            document.querySelectorAll('.message.selected').forEach(element => {
+                element.classList.remove('selected');
+            });
+            
+            // Очищаем Set
+            selectedMessages.clear();
+            
+            // Обновляем меню
+            updateSelectionMenu();
         }
         
         // Переключение меню выделенных сообщений
@@ -2592,26 +2592,29 @@
                     <p style="margin: 0 0 20px 0; color: #666;">Выберите вариант удаления:</p>
                     
                     <button onclick="deleteMessagesLocally()" 
-                            style="width: 100%; padding: 12px; margin: 5px 0; background: #ff9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        🗑️ Удалить только у меня (${selectedCount} сообщений)
+                            style="width: 100%; padding: 12px; margin: 5px 0; background: #ff9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-trash"></i> Удалить только у меня (${selectedCount} сообщений)
                     </button>
                     
                     ${canDeleteFromRecipient ? `
                     <button onclick="deleteMessagesGlobally()" 
-                            style="width: 100%; padding: 12px; margin: 5px 0; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        🗑️ Удалить у меня и получателя (${selectedCount} сообщений)
+                            style="width: 100%; padding: 12px; margin: 5px 0; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-trash"></i> Удалить у меня и получателя (${selectedCount} сообщений)
                     </button>
                     ` : ''}
                     
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
-                        ⚠️ <strong>Внимание:</strong> ${canDeleteFromRecipient ? 
-                            'Сообщения у получателя могут быть не удалены, если получатель не в сети или сообщения старше 1 часа' : 
-                            'Некоторые сообщения старше 1 часа - их можно удалить только у себя'}
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; display: flex; align-items: flex-start; gap: 8px;">
+                        <i class="fas fa-exclamation-triangle" style="color: #f39c12; font-size: 14px; margin-top: 2px;"></i>
+                        <div>
+                            <strong>Внимание:</strong> ${canDeleteFromRecipient ? 
+                                'Сообщения у получателя могут быть не удалены, если получатель не в сети или сообщения старше 1 часа' : 
+                                'Некоторые сообщения старше 1 часа - их можно удалить только у себя'}
+                        </div>
                     </div>
                     
                     <button onclick="closeDeleteModal()" 
-                            style="width: 100%; padding: 12px; margin: 5px 0; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        ❌ Отмена
+                            style="width: 100%; padding: 12px; margin: 5px 0; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <i class="fas fa-times"></i> Отмена
                     </button>
                 </div>
             `;
@@ -3002,12 +3005,15 @@
                         <p style="margin: 0 0 20px 0; color: #666;">
                             Удалить ${messageCount} сообщений у получателя невозможно, так как он не в сети.
                         </p>
-                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
-                            💡 <strong>Совет:</strong> Попробуйте удалить сообщения позже, когда получатель будет онлайн
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; display: flex; align-items: flex-start; gap: 8px;">
+                            <i class="fas fa-lightbulb" style="color: #f39c12; font-size: 14px; margin-top: 2px;"></i>
+                            <div>
+                                <strong>Совет:</strong> Попробуйте удалить сообщения позже, когда получатель будет онлайн
+                            </div>
                         </div>
                         <button onclick="closeDeleteModal()" 
-                                style="width: 100%; padding: 12px; margin: 5px 0; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                            ❌ Понятно
+                                style="width: 100%; padding: 12px; margin: 5px 0; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; justify-content: center;">
+                            <i class="fas fa-times"></i> Понятно
                         </button>
                     </div>
                 `;
@@ -3776,15 +3782,7 @@
                 if (unreadMessages[friendUsername] > 0) {
                     const indicator = document.createElement('span');
                     indicator.className = 'unread-indicator';
-                    indicator.style.cssText = `
-                        background: #e74c3c;
-                        color: white;
-                        border-radius: 50%;
-                        padding: 2px 6px;
-                        font-size: 12px;
-                        margin-left: 8px;
-                        font-weight: bold;
-                    `;
+                    // Стили теперь в CSS классе .unread-indicator
                     indicator.textContent = unreadMessages[friendUsername];
                     friendElement.appendChild(indicator);
                 }
@@ -3979,8 +3977,8 @@
                             border-radius: 15px;
                             max-width: 70%;
                             word-wrap: break-word;
-                            background: ${isOwn ? '#4CAF50' : '#e0e0e0'};
-                            color: ${isOwn ? 'white' : '#333'};
+                            background: ${isOwn ? 'rgb(255, 169, 90)' : '#F6F6F6'};
+                            color: ${isOwn ? '#101010' : '#1A1A1A'};
                             margin-left: ${isOwn ? 'auto' : '0'};
                             text-align: ${isOwn ? 'right' : 'left'};
                         `;
@@ -4787,12 +4785,11 @@
             `;
             
             const messageBubble = document.createElement('div');
+            messageBubble.className = isOwn ? 'message outgoing' : 'message incoming';
             messageBubble.style.cssText = `
                 max-width: 70%;
                 padding: 10px 15px;
-                border-radius: 15px;
-                background: ${isOwn ? '#2196F3' : '#e0e0e0'};
-                color: ${isOwn ? 'white' : 'black'};
+                border-radius: var(--radius);
                 word-wrap: break-word;
             `;
             
@@ -5363,7 +5360,7 @@
             
             const friendsHtml = friendsData.friends.map(friend => {
                 const unreadCount = unreadMessages[friend.username] || 0;
-                const unreadIndicator = unreadCount > 0 ? `<span class="unread-indicator" style="background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 8px; font-weight: bold;">${unreadCount}</span>` : '';
+                const unreadIndicator = unreadCount > 0 ? `<span class="unread-indicator">${unreadCount}</span>` : '';
                 
                 return `
                     <div class="friend-item" data-friend="${friend.username}" onclick="openChat('${friend.username}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='white'">
@@ -6235,7 +6232,7 @@
             // Используем тот же стиль, что и обычный список друзей
             const friendsHtml = friends.map(friend => {
                 const unreadCount = unreadMessages[friend.username] || 0;
-                const unreadIndicator = unreadCount > 0 ? `<span class="unread-indicator" style="background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 8px; font-weight: bold;">${unreadCount}</span>` : '';
+                const unreadIndicator = unreadCount > 0 ? `<span class="unread-indicator">${unreadCount}</span>` : '';
                 
                 return `
                     <div class="friend-item" data-friend="${friend.username}" onclick="openChat('${friend.username}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='white'">
@@ -6358,7 +6355,13 @@
                 console.log(`📊 Данные пользователя ${friendUsername}:`, userData);
                 
                 if (userData.success && userData.user) {
-                    const status = userData.user.user_status || 'В сети';
+                    let status = userData.user.user_status || 'В сети';
+                    
+                    // Обрезаем слишком длинные статусы (более 50 символов)
+                    if (status.length > 50) {
+                        status = status.substring(0, 47) + '...';
+                    }
+                    
                     console.log(`✅ Статус ${friendUsername}: ${status}`);
                     
                     // Обновляем статус в заголовке чата
