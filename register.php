@@ -166,6 +166,9 @@ if ($_POST) {
 </head>
 <body class="register-body">
     <div class="register-container">
+        <div class="auth-logo">
+            <img src="logo.png" alt="LizaApp" class="auth-logo-image">
+        </div>
         <h1 class="register-title">Создать аккаунт</h1>
         
         <?php if ($error): ?>
