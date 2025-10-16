@@ -17,9 +17,9 @@
         <h1 class="register-title">Войти</h1>
 
         <form id="loginForm" method="POST" autocomplete="off">
-            <div class="register-form-group">
-                <label for="countryCode" class="register-form-label">Страна</label>
-                <select name="countryCode" id="countryCode" class="register-form-input">
+                <div class="register-form-group">
+                    <label for="countryCode" class="register-form-label">Страна</label>
+                    <select name="countryCode" id="countryCode" class="register-form-input" required>
                     <option value="+7" selected>+7 Россия</option>
                     <option value="+1">+1 США/Канада</option>
                     <option value="+44">+44 Великобритания</option>
@@ -144,7 +144,14 @@
         </form>
 
         <div class="register-link">
-            Нет аккаунта? <a href="register.php">Зарегистрироваться</a>
+            <a href="login_username.php">Войти по логину</a> | 
+            <a href="register.php">Зарегистрироваться</a>
+        </div>
+        
+        <div class="register-link" style="margin-top: 20px;">
+            <a href="premium.php" style="color: var(--accent); font-weight: 600;">
+                <i class="fas fa-crown"></i> Премиум-аккаунт для организаций
+            </a>
         </div>
     </div>
 
@@ -156,16 +163,8 @@
             const phone = document.getElementById('phone').value;
             const password = document.getElementById('password').value;
             
-            // Валидация номера телефона
-            const cleanPhone = phone.replace(/[^0-9]/g, '');
-            
-            if (!cleanPhone) {
+            if (!phone) {
                 showError('Введите номер телефона');
-                return;
-            }
-            
-            if (cleanPhone.length !== 10) {
-                showError('Номер телефона должен содержать 10 цифр');
                 return;
             }
             
@@ -174,8 +173,20 @@
                 return;
             }
             
-            // Формируем полный номер с кодом страны
-            const fullPhoneNumber = countryCode + cleanPhone;
+            // Валидация номера телефона
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            
+            if (!cleanPhone) {
+                showError('Введите корректный номер телефона');
+                return;
+            }
+            
+            if (cleanPhone.length !== 10) {
+                showError('Номер телефона должен содержать 10 цифр');
+                return;
+            }
+            
+            const username = countryCode + cleanPhone;
             
             // Используем тот же API и логику, что и в app.js
             fetch('https://lizaapp.ru/api/login.php', {
@@ -184,7 +195,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    username: fullPhoneNumber,
+                    username: username,
                     password: password
                 })
             })
@@ -196,7 +207,7 @@
                     if (data.phone_verified == 1 || data.phone_verified === 1 || data.phone_verified === '1' || data.phone_verified === true) {
                         // Номер подтвержден - сохраняем данные пользователя
                         localStorage.setItem('userData', JSON.stringify({
-                            username: fullPhoneNumber,
+                            username: username,
                             userId: data.userId,
                             sessionToken: data.sessionToken
                         }));
@@ -205,7 +216,7 @@
                         window.location.href = 'simple-signal-test-websocket-external-js.html';
                     } else {
                         // Номер не подтвержден - перенаправляем на страницу подтверждения
-                        window.location.href = 'verify_phone.php?phone=' + encodeURIComponent(fullPhoneNumber);
+                        window.location.href = 'verify_phone.php?phone=' + encodeURIComponent(username);
                     }
                 } else {
                     showError(data.message || 'Ошибка авторизации');

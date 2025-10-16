@@ -788,7 +788,9 @@
         window.updateAvatarAfterUpload = updateAvatarAfterUpload;
 
         // Загружаем данные при загрузке страницы
-        document.addEventListener('DOMContentLoaded', loadUserData);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+        });
     </script>
 
 </body>

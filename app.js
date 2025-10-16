@@ -1512,10 +1512,15 @@
         };
         
         // Открытие чата с другом
-        function openChat(friendUsername) {
+        async function openChat(friendUsername) {
             // Показываем встроенный чат в правой части
             document.getElementById('chatFriendName').textContent = friendUsername;
             document.getElementById('chatContainer').style.display = 'block';
+            
+            // Загружаем имя из записной книжки
+            if (typeof loadChatFriendName === 'function') {
+                await loadChatFriendName(friendUsername);
+            }
             
             // Загружаем аватар друга в заголовок чата
             loadChatFriendAvatar(friendUsername);
@@ -1544,7 +1549,7 @@
         // Счетчик попыток подключения к Chat WebSocket
         let chatConnectionAttempts = 0;
         const maxChatConnectionAttempts = 3;
-
+        
         function initializeChat(friendUsername) {
             currentChatFriend = friendUsername;
             
@@ -2607,8 +2612,8 @@
                         <i class="fas fa-exclamation-triangle" style="color: #f39c12; font-size: 14px; margin-top: 2px;"></i>
                         <div>
                             <strong>Внимание:</strong> ${canDeleteFromRecipient ? 
-                                'Сообщения у получателя могут быть не удалены, если получатель не в сети или сообщения старше 1 часа' : 
-                                'Некоторые сообщения старше 1 часа - их можно удалить только у себя'}
+                            'Сообщения у получателя могут быть не удалены, если получатель не в сети или сообщения старше 1 часа' : 
+                            'Некоторые сообщения старше 1 часа - их можно удалить только у себя'}
                         </div>
                     </div>
                     
@@ -3366,24 +3371,24 @@
                     } else {
                         // Отправляем обычное сообщение
                         success = sendP2PMessage(friendUsername, {
-                            type: 'chat_message',
-                            to: friendUsername,
-                            data: {
-                                message: queuedMessage.message,
-                                from: currentUser.id,
-                                timestamp: queuedMessage.timestamp,
-                                type: queuedMessage.type
-                            }
-                        });
-                        
-                        if (success) {
-                            // Обновляем статус на "sent" при успешной отправке
-                            updateMessageStatusInUI(queuedMessage.timestamp, 'sent');
-                            updateMessageStatusInDB(friendUsername, queuedMessage.timestamp, 'sent');
+                        type: 'chat_message',
+                        to: friendUsername,
+                        data: {
+                            message: queuedMessage.message,
+                            from: currentUser.id,
+                            timestamp: queuedMessage.timestamp,
+                            type: queuedMessage.type
+                        }
+                    });
+                    
+                    if (success) {
+                        // Обновляем статус на "sent" при успешной отправке
+                        updateMessageStatusInUI(queuedMessage.timestamp, 'sent');
+                        updateMessageStatusInDB(friendUsername, queuedMessage.timestamp, 'sent');
                             console.log(`✅ Сообщение из очереди отправлено к ${friendUsername}`);
                         }
                     }
-                    
+                        
                     if (success) {
                         // Удаляем из очереди
                         const index = messageQueues[friendUsername].indexOf(queuedMessage);
@@ -3830,15 +3835,15 @@
         function updateChatStatus(message, type) {
             const status = document.getElementById('chatStatus');
             if (status) {
-                status.textContent = message;
-                status.className = `status ${type}`;
-                status.style.cssText = `
-                    padding: 10px 20px;
-                    background: ${type === 'connected' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd'};
-                    color: ${type === 'connected' ? '#155724' : type === 'error' ? '#721c24' : '#856404'};
-                    border-bottom: 1px solid ${type === 'connected' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#ffeaa7'};
-                    font-size: 14px;
-                `;
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.cssText = `
+                padding: 10px 20px;
+                background: ${type === 'connected' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd'};
+                color: ${type === 'connected' ? '#155724' : type === 'error' ? '#721c24' : '#856404'};
+                border-bottom: 1px solid ${type === 'connected' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#ffeaa7'};
+                font-size: 14px;
+            `;
             } else {
                 console.log(`📊 Статус чата: ${message} (тип: ${type})`);
             }
@@ -5169,7 +5174,27 @@
             // Секция друзей теперь встроена в левую панель
         }
         
-        // Поиск пользователя
+        // Переключение типа поиска
+        function switchSearchType(type) {
+            const phoneFields = document.getElementById('phoneSearchFields');
+            const usernameFields = document.getElementById('usernameSearchFields');
+            const phoneBtn = document.querySelector('.search-type-btn[onclick="switchSearchType(\'phone\')"]');
+            const usernameBtn = document.querySelector('.search-type-btn[onclick="switchSearchType(\'username\')"]');
+            
+            if (type === 'phone') {
+                phoneFields.style.display = 'block';
+                usernameFields.style.display = 'none';
+                phoneBtn.classList.add('active');
+                usernameBtn.classList.remove('active');
+            } else {
+                phoneFields.style.display = 'none';
+                usernameFields.style.display = 'block';
+                phoneBtn.classList.remove('active');
+                usernameBtn.classList.add('active');
+            }
+        }
+
+        // Поиск пользователя по номеру телефона
         async function searchUser() {
             const username = document.getElementById('searchUsername').value.trim();
             if (!username) {
@@ -5246,6 +5271,50 @@
                 </div>
             `;
         }
+
+        // Поиск пользователя по логину (простая логика без валидации)
+        async function searchUserByUsername() {
+            const username = document.getElementById('searchUsernameField').value.trim();
+            if (!username) {
+                alert('Введите логин для поиска');
+                return;
+            }
+            
+            if (username === currentUser.id) {
+                alert('Нельзя искать самого себя');
+                return;
+            }
+            
+            currentUser.log(`🔍 Поиск пользователя по логину: ${username}`, 'info');
+            
+            try {
+                // Поиск пользователя через API
+                const response = await fetch(`https://lizaapp.ru/api/search_user.php?username=${encodeURIComponent(username)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser.log('📋 Ответ API поиска:', data);
+                    
+                    if (data.success && data.user) {
+                        displaySearchResult(data.user);
+                    } else {
+                        // Пользователь не найден - показываем варианты приглашения
+                        displayInviteOptions(username);
+                    }
+                } else {
+                    currentUser.log('❌ Ошибка HTTP при поиске пользователя:', response.status);
+                    alert('Ошибка при поиске пользователя');
+                }
+            } catch (error) {
+                currentUser.log('❌ Ошибка при поиске пользователя:', error);
+                alert('Ошибка при поиске пользователя');
+            }
+        }
         
         // Отправка запроса в друзья
         async function sendFriendRequest(username) {
@@ -5274,7 +5343,7 @@
                             timestamp: new Date().toISOString()
                         });
                         
-                        updateSentRequestsList();
+                        await updateSentRequestsList();
                         document.getElementById('searchResults').innerHTML = '<p style="color: green;">Запрос отправлен!</p>';
                 } else {
                         currentUser.log(`❌ Ошибка отправки запроса: ${data.message}`, 'error');
@@ -5320,7 +5389,7 @@
                     if (requestsResponseData.success) {
                         friendsData.requests = requestsResponseData.requests || [];
                         console.log('✅ Запросы загружены:', friendsData.requests);
-                        updateRequestsList();
+                        await updateRequestsList();
                     } else {
                         console.log('❌ Ошибка загрузки запросов:', requestsResponseData.message);
                     }
@@ -5336,7 +5405,7 @@
                     const sentRequestsResponseData = await sentRequestsResponse.json();
                     if (sentRequestsResponseData.success) {
                         friendsData.sentRequests = sentRequestsResponseData.requests || [];
-                        updateSentRequestsList();
+                        await updateSentRequestsList();
                     }
                 }
                 
@@ -5458,9 +5527,9 @@
                 }
             }
         }
-
+        
         // Обновление списка входящих запросов
-        function updateRequestsList() {
+        async function updateRequestsList() {
             console.log('🔄 updateRequestsList вызвана');
             console.log('📊 friendsData.requests:', friendsData.requests);
             console.log('📊 Количество запросов:', friendsData.requests.length);
@@ -5478,9 +5547,10 @@
                 return;
             }
             
+            // Сначала отображаем с номерами телефонов
             const requestsHtml = friendsData.requests.map(request => `
                 <div class="request-item">
-                    <div class="username">👤 ${request.username}</div>
+                    <div class="username" data-phone="${request.username}">👤 ${request.username}</div>
                     <div class="actions">
                         <button onclick="acceptFriendRequest('${request.username}')" class="btn-success btn-small">✓</button>
                         <button onclick="rejectFriendRequest('${request.username}')" class="btn-danger btn-small">✗</button>
@@ -5490,6 +5560,12 @@
             
             requestsList.innerHTML = requestsHtml;
             
+            // Загружаем имена из записной книжки
+            if (typeof loadRequestNames === 'function') {
+                await loadRequestNames();
+            }
+            
+            
             // Загружаем аватары для запросов
             loadRequestsAvatars();
             
@@ -5498,6 +5574,7 @@
                 window.updateRequestsCounter();
             }
         }
+        
         
         
         // Функция для загрузки аватаров запросов
@@ -5531,7 +5608,7 @@
         }
         
         // Обновление списка отправленных запросов
-        function updateSentRequestsList() {
+        async function updateSentRequestsList() {
             const sentRequestsList = document.getElementById('sentRequestsList');
             
             if (friendsData.sentRequests.length === 0) {
@@ -5539,9 +5616,10 @@
                 return;
             }
             
+            // Сначала отображаем с номерами телефонов
             const sentRequestsHtml = friendsData.sentRequests.map(request => `
                 <div class="request-item">
-                    <div class="username">👤 ${request.username}</div>
+                    <div class="username" data-phone="${request.username}">👤 ${request.username}</div>
                     <div class="actions">
                         <span style="color: #666; font-size: 12px;">Ожидает</span>
                     </div>
@@ -5549,7 +5627,13 @@
             `).join('');
             
             sentRequestsList.innerHTML = sentRequestsHtml;
+            
+            // Загружаем имена из записной книжки
+            if (typeof loadSentRequestNames === 'function') {
+                await loadSentRequestNames();
+            }
         }
+        
         
         // Функция для загрузки имен контактов из IndexedDB
         async function loadContactNames() {
@@ -5624,7 +5708,7 @@
                             timestamp: new Date().toISOString()
                         });
                         
-                        updateRequestsList();
+                        await updateRequestsList();
                         updateFriendsList();
                 } else {
                         currentUser.log(`❌ Ошибка принятия запроса: ${data.message}`, 'error');
@@ -5668,7 +5752,7 @@
                             window.updateRequestsCounter();
                         }
                         
-                        updateRequestsList();
+                        await updateRequestsList();
                 } else {
                         currentUser.log(`❌ Ошибка отклонения запроса: ${data.message}`, 'error');
                         alert(data.message);
@@ -5893,7 +5977,7 @@
         }
         
         // Функция переключения табов
-        function switchTab(tabName) {
+        async function switchTab(tabName) {
             // Убираем активный класс со всех табов
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             
@@ -5911,7 +5995,7 @@
                 document.getElementById('searchTab').style.display = 'block';
             } else if (tabName === 'requests') {
                 document.getElementById('requestsTab').style.display = 'block';
-                loadFriendsData();
+                await loadFriendsData();
             } else if (tabName === 'invitations') {
                 document.getElementById('invitationsTab').style.display = 'block';
                 loadFriendsData();

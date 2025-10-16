@@ -14,6 +14,8 @@
     <script src="js/invite-system.js?v=1.3"></script>
     <!-- Счетчик заявок в друзья -->
     <script src="js/requests-counter.js?v=1.0"></script>
+    <!-- Загрузчик имен для запросов -->
+    <script src="js/request-names-loader.js?v=1.0"></script>
 </head>
 <body>
     <!-- Шапка приложения -->
@@ -42,9 +44,22 @@
             <div class="tab-content sidebar-content">
                 <!-- Таб Поиск -->
                 <div id="searchTab" class="tab-panel search-panel" style="display: none;">
-                    <h3><i class="fas fa-search"></i> Поиск по номеру телефона</h3>
-                    <div class="search-input-container" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                        <input type="text" id="searchUsername" placeholder="+79991234567" style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+                    <h3><i class="fas fa-search"></i> Поиск пользователей</h3>
+                    
+                    <!-- Переключатель типа поиска -->
+                    <div class="search-type-switcher">
+                        <button type="button" class="search-type-btn active" onclick="switchSearchType('phone')">
+                            <i class="fas fa-phone"></i> По номеру телефона
+                        </button>
+                        <button type="button" class="search-type-btn" onclick="switchSearchType('username')">
+                            <i class="fas fa-user"></i> По логину
+                        </button>
+                    </div>
+                    
+                    <!-- Поля для поиска по номеру телефона -->
+                    <div id="phoneSearchFields" class="search-fields">
+                        <div class="search-input-container" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <input type="text" id="searchUsername" placeholder="+79991234567" style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
                         <button onclick="selectFromContacts()" class="btn-secondary contacts-btn" style="border: 1px solid #007bff; background: #007bff; color: white; border-radius: 5px; cursor: pointer;" title="Выбрать из контактов">
                             <i class="fas fa-address-book"></i>
                         </button>
@@ -52,6 +67,18 @@
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
+                    </div>
+                    
+                    <!-- Поля для поиска по логину -->
+                    <div id="usernameSearchFields" class="search-fields" style="display: none;">
+                        <div class="search-input-container" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <input type="text" id="searchUsernameField" placeholder="Введите логин" style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+                            <button onclick="searchUserByUsername()" class="btn-primary search-btn" style="border: 1px solid var(--accent); background: var(--accent); color: white; border-radius: 5px; cursor: pointer;" title="Найти пользователя">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div id="searchResults"></div>
                 </div>
                 
@@ -178,11 +205,11 @@
                             <div id="chatFriendAvatar" style="width: 50px; height: 50px; border-radius: 50%; background: #34495e; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">
                                 <i class="fas fa-user"></i>
                             </div>
-                            <div>
+                    <div>
                                 <h3 style="margin: 0; font-size: 24px; font-weight: 600;"> Чат с <span id="chatFriendName">Другом</span></h3>
                                 <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;" id="chatFriendStatus">Соединение установлено</p>
                             </div>
-                        </div>
+                    </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
                     <button onclick="callFriendFromChat()" class="btn-primary btn-small" id="chatCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-video"></i></button>
                     <button onclick="callFriendAudioFromChat()" class="btn-secondary btn-small" id="chatAudioCallBtn" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-phone"></i></button>
@@ -446,7 +473,7 @@
             <!-- Поиск пользователей -->
             <div class="search-section">
                 <h3><i class="fas fa-search"></i> Поиск по номеру телефона</h3>
-                <input type="text" id="searchUsername" placeholder="Введите номер телефона (+79991234567)" style="width: 300px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+                <input type="text" id="searchUsername" placeholder="Введите номер телефона или логин" style="width: 300px;" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
                 <button onclick="searchUser()" class="btn-primary"><i class="fas fa-search"></i> Найти</button>
                 <div id="searchResults" class="search-results"></div>
         </div>
