@@ -1621,8 +1621,180 @@
           font-size: 15px;
       }
       
-      .feature-content p {
+  .feature-content p {
+      font-size: 12px;
+  }
+  }
+
+
+  /* Стили для встроенных вариантов приглашения */
+  .search-result-not-found {
+      margin-top: 15px;
+      padding: 20px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  /* Компактный дизайн для информации о пользователе */
+  .user-item-compact {
+      margin-bottom: 20px;
+  }
+
+  .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+  }
+
+  .user-icon {
+      font-size: 20px;
+      color: var(--muted);
+      width: 24px;
+      text-align: center;
+  }
+
+  .user-details {
+      flex: 1;
+  }
+
+  .user-phone {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+  }
+
+  .user-status {
+      font-size: 14px;
+      color: #e74c3c;
+      font-weight: 500;
+  }
+
+  .invite-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+  }
+
+  .invite-subtitle {
+      margin: 0 0 15px 0;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+  }
+
+  .invite-subtitle i {
+      color: var(--accent);
+  }
+
+  /* Горизонтальные кнопки приглашения */
+  .invite-options-horizontal {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+  }
+
+  .invite-option-horizontal {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      flex: 1;
+      min-width: 120px;
+      justify-content: flex-start;
+  }
+
+  .invite-option-horizontal:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .invite-option-horizontal i {
+      font-size: 16px;
+      width: 16px;
+      text-align: center;
+  }
+
+  /* Цвета для каждого способа отправки */
+  .invite-option-horizontal.sms {
+      border-color: #4CAF50;
+  }
+
+  .invite-option-horizontal.sms:hover {
+      background: #E8F5E8;
+      border-color: #4CAF50;
+  }
+
+  .invite-option-horizontal.sms i {
+      color: #4CAF50;
+  }
+
+  .invite-option-horizontal.whatsapp {
+      border-color: #25D366;
+  }
+
+  .invite-option-horizontal.whatsapp:hover {
+      background: #E8F8F0;
+      border-color: #25D366;
+  }
+
+  .invite-option-horizontal.whatsapp i {
+      color: #25D366;
+  }
+
+  .invite-option-horizontal.telegram {
+      border-color: #0088cc;
+  }
+
+  .invite-option-horizontal.telegram:hover {
+      background: #E8F4FD;
+      border-color: #0088cc;
+  }
+
+  .invite-option-horizontal.telegram i {
+      color: #0088cc;
+  }
+
+  .invite-option-horizontal.vk {
+      border-color: #4C75A3;
+  }
+
+  .invite-option-horizontal.vk:hover {
+      background: #E8EBF0;
+      border-color: #4C75A3;
+  }
+
+  .invite-option-horizontal.vk i {
+      color: #4C75A3;
+  }
+
+  @media (max-width: 480px) {
+      .invite-options-horizontal {
+          gap: 8px;
+      }
+      
+      .invite-option-horizontal {
+          padding: 8px 12px;
           font-size: 12px;
+          min-width: 100px;
+      }
+      
+      .invite-option-horizontal i {
+          font-size: 14px;
       }
   }
   

@@ -5202,7 +5202,7 @@
                         displaySearchResult(data.user);
                     } else {
                         currentUser.log(`❌ Пользователь ${username} не найден`, 'error');
-                        document.getElementById('searchResults').innerHTML = '<p style="color: red;">Пользователь не найден</p>';
+                        document.getElementById('searchResults').innerHTML = createInviteButton(username, 'Пользователь не найден');
                     }
             } else {
                     const errorText = await response.text();
@@ -5211,7 +5211,8 @@
                 }
             } catch (error) {
                 currentUser.log(`❌ Ошибка поиска: ${error.message}`, 'error');
-                document.getElementById('searchResults').innerHTML = '<p style="color: red;">Ошибка поиска пользователя</p>';
+                const username = document.getElementById('searchUsername').value.trim();
+                document.getElementById('searchResults').innerHTML = createInviteButton(username, 'Ошибка поиска');
             }
         }
         
@@ -6385,4 +6386,5 @@
                 }
             }
         }
+
         
