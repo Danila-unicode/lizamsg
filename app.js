@@ -5145,6 +5145,9 @@
             sentRequests: []       // Исходящие запросы
         };
         
+        // Делаем friendsData глобальной для доступа из других модулей
+        window.friendsData = friendsData;
+        
         // Состояние входящего звонка
         let incomingCall = {
             isActive: false,
@@ -5348,6 +5351,11 @@
                     console.error('Ошибка предзагрузки аватаров:', error);
                 });
             }
+            
+            // Обновляем счетчик заявок после загрузки всех данных
+            if (window.updateRequestsCounter) {
+                window.updateRequestsCounter();
+            }
         }
         
         // Обновление списка друзей
@@ -5462,6 +5470,11 @@
             if (friendsData.requests.length === 0) {
                 console.log('❌ Нет запросов для отображения');
                 requestsList.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">Нет запросов</p>';
+                
+                // Обновляем счетчик заявок (должен быть 0)
+                if (window.updateRequestsCounter) {
+                    window.updateRequestsCounter();
+                }
                 return;
             }
             
@@ -5479,7 +5492,13 @@
             
             // Загружаем аватары для запросов
             loadRequestsAvatars();
+            
+            // Обновляем счетчик заявок
+            if (window.updateRequestsCounter) {
+                window.updateRequestsCounter();
+            }
         }
+        
         
         // Функция для загрузки аватаров запросов
         async function loadRequestsAvatars() {
@@ -5594,6 +5613,11 @@
                         // Удаляем из входящих запросов
                         friendsData.requests = friendsData.requests.filter(r => r.username !== username);
                         
+                        // Обновляем счетчик заявок
+                        if (window.updateRequestsCounter) {
+                            window.updateRequestsCounter();
+                        }
+                        
                         // Добавляем в друзья
                         friendsData.friends.push({
                             username: username,
@@ -5638,6 +5662,11 @@
                         
                         // Удаляем из входящих запросов
                         friendsData.requests = friendsData.requests.filter(r => r.username !== username);
+                        
+                        // Обновляем счетчик заявок
+                        if (window.updateRequestsCounter) {
+                            window.updateRequestsCounter();
+                        }
                         
                         updateRequestsList();
                 } else {

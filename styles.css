@@ -2695,11 +2695,11 @@
       position: relative;
   }
   
-  .call-icon {
-      font-size: 48px;
-      color: #007bff;
-      animation: pulse 2s infinite;
-  }
+.call-icon {
+    font-size: 48px;
+    color: var(--accent);
+    animation: pulse 2s infinite;
+}
   
   @keyframes pulse {
       0% { transform: scale(1); opacity: 1; }
@@ -2783,8 +2783,8 @@
   
   .accept-btn {
       flex: 1;
-      background: #f0f0f0;
-      border: 2px solid #ccc;
+      background: #4CAF50;
+      border: 2px solid #4CAF50;
       border-radius: 25px;
       padding: 15px 20px;
       display: flex;
@@ -2793,18 +2793,21 @@
       gap: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
-      color: #333;
+      color: white;
       font-size: 14px;
       font-weight: 500;
   }
   
   .accept-btn:hover {
-      background: #e0e0e0;
-      border-color: #999;
+      background: #45a049;
+      border-color: #45a049;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
   }
   
   .accept-btn i {
       font-size: 20px;
+      color: white;
   }
   
   .decline-btn {
@@ -2875,4 +2878,39 @@
           font-size: 18px;
       }
   }
+
+/* Счетчик заявок в друзья */
+.requests-counter {
+    background: #e74c3c !important;
+    color: white !important;
+    border-radius: 50% !important;
+    padding: 1px 4px !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    margin-left: 4px !important;
+    display: inline-block !important;
+    min-width: 14px !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+    .requests-counter {
+        padding: 1px 3px !important;
+        font-size: 9px !important;
+        margin-left: 3px !important;
+        min-width: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .requests-counter {
+        padding: 0px 2px !important;
+        font-size: 8px !important;
+        margin-left: 2px !important;
+        min-width: 10px !important;
+    }
+}
+
   
