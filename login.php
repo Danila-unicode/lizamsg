@@ -148,6 +148,12 @@
             <a href="register.php">Зарегистрироваться</a>
         </div>
         
+        <div class="register-link" style="margin-top: 15px;">
+            <a href="forgot_password.php" style="color: #e74c3c;">
+                <i class="fas fa-key"></i> Забыли пароль?
+            </a>
+        </div>
+        
         <div class="register-link" style="margin-top: 20px;">
             <a href="premium.php" style="color: var(--accent); font-weight: 600;">
                 <i class="fas fa-crown"></i> Премиум-аккаунт для организаций

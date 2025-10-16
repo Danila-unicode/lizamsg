@@ -2996,3 +2996,197 @@
 .search-type-btn i {
     font-size: 14px;
 }
+
+/* Стили для восстановления пароля */
+.password-reset-step {
+    margin-bottom: 20px;
+}
+
+.call-instructions {
+    text-align: center;
+    padding: 20px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.call-instructions h3 {
+    color: var(--text);
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.call-number-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.call-number-display span {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(255, 122, 0, 0.1);
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    border: 2px solid var(--accent);
+}
+
+.call-button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.call-button:hover {
+    background: #E66A00;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 122, 0, 0.4);
+}
+
+.call-info {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.success-message {
+    text-align: center;
+    padding: 20px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.success-message h3 {
+    color: #27ae60;
+    margin-bottom: 20px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.password-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.password-input {
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 2px;
+    background: #f8f9fa;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    color: var(--text);
+    min-width: 200px;
+}
+
+.copy-button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.copy-button:hover {
+    background: #E66A00;
+    transform: translateY(-1px);
+}
+
+.password-actions {
+    margin: 20px 0;
+}
+
+.password-warning {
+    color: #f39c12;
+    font-size: 14px;
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.register-description {
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 480px) {
+    .call-number-display {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .call-number-display span {
+        font-size: 20px;
+        padding: 10px 16px;
+    }
+    
+    .password-display {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .password-input {
+        min-width: 180px;
+        font-size: 16px;
+    }
+}
